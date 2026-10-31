@@ -48,3 +48,18 @@ firebase/functions every write, checked on the server (Cloud Functions, asia-sou
 **Clients never write clinical data.** The security rules deny it, and every change is
 a callable function, so the rule that "only a doctor can sign" is enforced where it
 cannot be skipped. Anything clinical is append-only.
+
+## Run it
+
+You need Node 22+ and Java 11+ (for the emulator). No cloud account.
+
+```bash
+npm install
+npm run emulators        # auth, firestore, functions
+npm run seed             # the demo hospitals, doctors and patients
+```
+
+```bash
+npm test                  # unit tests
+npm run check             # typecheck both apps and build the functions
+```

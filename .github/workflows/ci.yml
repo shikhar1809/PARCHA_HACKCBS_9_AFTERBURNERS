@@ -7,7 +7,7 @@ on:
 
 jobs:
   check:
-    name: Unit tests and the functions build
+    name: Types and unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +17,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Unit tests
         run: npm test
+      - name: Typecheck both apps
+        run: npm run typecheck:apps
       - name: Build the Cloud Functions
         run: npm run functions:build

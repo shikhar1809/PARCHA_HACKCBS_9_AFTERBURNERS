@@ -9,7 +9,9 @@
     "dev:clinic": "npm run dev --workspace @parcha/clinic",
     "emulators": "node scripts/emulators.mjs",
     "functions:build": "npm run build --workspace @parcha/functions",
-    "test": "tsx --test packages/core/test/*.test.ts"
+    "test": "tsx --test packages/core/test/*.test.ts",
+    "check": "npm run typecheck:apps && npm run functions:build",
+    "typecheck:apps": "tsc -p apps/clinic --noEmit && tsc -p apps/patient --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20",
