@@ -29,5 +29,7 @@ export * from "./schedule.js";
 export * from "./calls.js";
 export * from "./privacy.js";
 export * from "./profile.js";
+export * from "./session.js";
+export * from "./seats.js";
 export * from "./reading.js";
 export * from "./soundsLike.js";
