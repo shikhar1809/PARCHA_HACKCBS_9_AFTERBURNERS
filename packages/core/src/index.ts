@@ -15,4 +15,6 @@ export * from "./usual.js";
 export * from "./dictation.js";
 export * from "./conflicts.js";
 export * from "./special.js";
+export * from "./rxTerms.js";
+export * from "./rxToken.js";
 export * from "./paths.js";
