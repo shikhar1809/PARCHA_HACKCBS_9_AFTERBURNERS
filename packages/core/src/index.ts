@@ -21,3 +21,4 @@ export * from "./crossCheck.js";
 export * from "./paths.js";
 export * from "./vitals.js";
 export * from "./slots.js";
+export * from "./hospitals.js";
