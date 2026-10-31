@@ -23,3 +23,10 @@ are the detail.
 | [Safety check](SAFETY-ENGINE.md) | The drug allergy, interaction and vitals rules |
 | [Offline](OFFLINE.md) | How both apps keep working with no connection |
 
+
+## The apps
+
+| Page | What it covers |
+| --- | --- |
+| [Clinic app](CLINIC-APP.md) | Desk, doctor, team: every screen and who sees it |
+
