@@ -34,4 +34,5 @@ export * from "./seats.js";
 export * from "./access.js";
 export * from "./counter.js";
 export * from "./reading.js";
+export * from "./voice.js";
 export * from "./soundsLike.js";
