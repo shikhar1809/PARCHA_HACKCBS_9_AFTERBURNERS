@@ -1,0 +1,13 @@
+{
+  "name": "Parcha Clinic",
+  "short_name": "Parcha",
+  "description": "Front desk, consultation and medicine counter.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf5ea",
+  "theme_color": "#ff7f5a",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
