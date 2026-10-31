@@ -11,4 +11,8 @@ export { cn } from "./cn";
 export { PhoneFrame, Screen } from "./phone-frame";
 export { Logo, Wordmark } from "./logo";
 export { AppBar, TabBar, ActionBar, type TabItem } from "./chrome";
+export { PatientRow, EmptyQueue, SectionLabel } from "./patient-row";
+export { DosePictogram, FormIcon, TimingPictogram } from "./dose-pictogram";
+export { BodyMap, type BodyView } from "./body-map";
 export { Splash, useFontsReady, useMinTime } from "./splash";
+export { BringIcon } from "./bring-icon";
