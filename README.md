@@ -33,3 +33,18 @@ signed — and that is all it is allowed to read; the clinic's record of what wa
 measured, found, prescribed and dispensed is read at the clinic. The prescription
 crosses the gap the way the paper does: the family is handed the printed Parcha
 and scans the signed QR on it, which carries the whole document.
+
+## How it is built
+
+An npm workspaces monorepo:
+
+```
+packages/core      pure logic: stages, safety check, schedule, call scripts
+packages/client    Firebase wiring, hooks, the offline store and outbox
+packages/ui        shared components and the theme
+firebase/functions every write, checked on the server (Cloud Functions, asia-south1)
+```
+
+**Clients never write clinical data.** The security rules deny it, and every change is
+a callable function, so the rule that "only a doctor can sign" is enforced where it
+cannot be skipped. Anything clinical is append-only.
