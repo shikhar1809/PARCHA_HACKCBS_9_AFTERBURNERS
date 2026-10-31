@@ -17,4 +17,5 @@ export * from "./conflicts.js";
 export * from "./special.js";
 export * from "./rxTerms.js";
 export * from "./rxToken.js";
+export * from "./crossCheck.js";
 export * from "./paths.js";
