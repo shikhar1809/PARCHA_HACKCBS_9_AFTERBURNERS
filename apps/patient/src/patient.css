@@ -1,0 +1,254 @@
+/**
+ * Patient-only additions over the shared theme: a larger base size for
+ * readers at arm's length, one hue per time of day (always paired with a
+ * drawn icon and a word, never colour alone), and the one entrance moment.
+ */
+:root {
+  --morning: oklch(0.84 0.15 82);
+  --morning-soft: oklch(0.955 0.06 90);
+  --morning-ink: oklch(0.42 0.09 65);
+  --afternoon: oklch(0.72 0.17 52);
+  --afternoon-soft: oklch(0.95 0.045 60);
+  --afternoon-ink: oklch(0.42 0.12 45);
+  --night: oklch(0.45 0.13 275);
+  --night-soft: oklch(0.94 0.03 280);
+  --night-ink: oklch(0.34 0.12 275);
+
+  --ready: oklch(0.5 0.13 150);
+  --ready-soft: oklch(0.94 0.05 150);
+}
+
+html {
+  font-size: 15px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0.001;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* One authored moment: the list settles in once when a screen opens. */
+.rise > * {
+  animation: rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.rise > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.rise > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.rise > *:nth-child(n + 4) {
+  animation-delay: 170ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise > * {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------------ *
+ * Motion. Everything eases out (quick to start, slow to settle) so it feels
+ * like it is responding to a touch, and none of it blocks: a tap works while
+ * an animation is still playing. All of it is off for people who ask for less
+ * motion.
+ * ------------------------------------------------------------------------ */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A screen arrives: a short fade and slide. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: page-in 340ms var(--ease-out) both;
+}
+
+/* A sheet rises from the bottom edge. */
+@keyframes sheet-in {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.sheet-in {
+  animation: sheet-in 320ms var(--ease-out) both;
+}
+
+/* Things pop in with a small overshoot. */
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop {
+  animation: pop 420ms var(--ease-spring) both;
+}
+
+/* Lists settle one after another, up to twelve rows. */
+.stagger > * {
+  animation: rise 420ms var(--ease-out) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 45ms; }
+.stagger > *:nth-child(3) { animation-delay: 90ms; }
+.stagger > *:nth-child(4) { animation-delay: 135ms; }
+.stagger > *:nth-child(5) { animation-delay: 180ms; }
+.stagger > *:nth-child(6) { animation-delay: 220ms; }
+.stagger > *:nth-child(7) { animation-delay: 255ms; }
+.stagger > *:nth-child(8) { animation-delay: 290ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 320ms; }
+
+/* The drawings bob very gently. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.art-float {
+  animation: float 4.2s ease-in-out infinite;
+}
+
+/* An arrow that nudges, to say "this goes somewhere". */
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+.nudge {
+  animation: nudge 1.6s ease-in-out infinite;
+}
+
+/* A soft ring around the thing that is waiting for you. */
+@keyframes halo {
+  0% { box-shadow: 0 5px 0 #232326, 0 0 0 0 rgb(255 127 90 / 0.55); }
+  100% { box-shadow: 0 5px 0 #232326, 0 0 0 14px rgb(255 127 90 / 0); }
+}
+.halo {
+  animation: halo 2.2s ease-out infinite;
+}
+
+/* Every tappable thing eases between states and gives under a finger. */
+a,
+button,
+[role="tab"],
+label {
+  transition:
+    transform 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out),
+    background-color 180ms ease,
+    opacity 180ms ease;
+}
+a:active,
+button:not(:disabled):active {
+  transform: translateY(2px) scale(0.985);
+}
+@media (hover: hover) {
+  a:hover,
+  button:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* The bar's highlight slides to the tab you chose. */
+.tab-pill {
+  transition: transform 320ms var(--ease-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in,
+  .sheet-in,
+  .pop,
+  .stagger > *,
+  .art-float,
+  .nudge,
+  .halo {
+    animation: none !important;
+  }
+  .tab-pill,
+  a,
+  button {
+    transition: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------------ *
+ * Size to the phone. The base type is smaller than before, and it steps down
+ * again on narrow or short screens, so the same layout fits a small Android
+ * handset without anything wrapping badly.
+ * ------------------------------------------------------------------------ */
+@media (max-width: 359px) {
+  html {
+    font-size: 13.5px;
+  }
+}
+@media (max-height: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+@media (min-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/*
+ * Seeing and hearing (access.ts): set on <html> for the person using the
+ * phone. Larger text scales every rem; high contrast turns the warm greys to
+ * black on white and drops the soft tints, keeping the coral for actions.
+ */
+html[data-large-text="1"] {
+  font-size: 118.75%;
+}
+html[data-contrast="high"] {
+  --color-background: #ffffff;
+  --color-card: #ffffff;
+  --color-foreground: #000000;
+  --color-muted: #ffffff;
+  --color-muted-foreground: #000000;
+  --color-border: #000000;
+  --color-input: #000000;
+  --brand-soft: #ffffff;
+  --morning-soft: #ffffff;
+  --afternoon-soft: #ffffff;
+  --night-soft: #ffffff;
+  --ready-soft: #ffffff;
+}
+html[data-contrast="high"] body {
+  color: #000;
+}
+
+/* For someone who cannot hear: the reminder flashes as well as vibrating. */
+@keyframes alert-flash {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 0 14px #ffd23f; }
+}
+.alert-flash {
+  animation: alert-flash 900ms ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert-flash { animation: none; box-shadow: inset 0 0 0 10px #ffd23f; }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@parcha/patient",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3001 --strictPort",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 3001",
+    "build:live": "tsc -b && vite build --mode parcha-101"
+  },
+  "dependencies": {
+    "@capacitor-community/text-to-speech": "^6.1.0",
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/haptics": "^7.0.5",
+    "@capacitor/local-notifications": "^7.0.7",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.6",
+    "@parcha/core": "*",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "firebase": "^12.4.0",
+    "jsqr": "^1.4.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.548.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.9.4",
+    "tesseract.js": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.6.9",
+    "@tailwindcss/vite": "^4.1.16",
+    "@types/leaflet": "^1.9.22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.0",
+    "sharp": "^0.35.5",
+    "tailwindcss": "^4.1.16",
+    "typescript": "^5",
+    "vite": "^7.2.1",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}
