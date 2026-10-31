@@ -1,0 +1,552 @@
+/**
+ * The Parcha look, shared by both apps.
+ *
+ * Flat and bold: a coral brand colour, charcoal ink, mint accents, thick
+ * dark outlines. Paper-warm surfaces rather than stark white, which is kinder
+ * in bright daylight on a cheap screen. Text on coral is always charcoal:
+ * white on this coral does not reach readable contrast.
+ *
+ * Plain custom properties, loaded after styles.css so they override the
+ * neutral defaults there for every utility that reads them.
+ */
+:root {
+  --color-background: oklch(0.972 0.014 85);
+  --color-card: oklch(0.995 0.005 85);
+  --color-foreground: oklch(0.26 0.01 285);
+  --color-muted: oklch(0.94 0.016 85);
+  --color-muted-foreground: oklch(0.36 0.015 285);
+  --color-border: oklch(0.89 0.018 85);
+  --color-input: oklch(0.8 0.02 85);
+  --color-ring: oklch(0.26 0.01 285);
+  --color-primary: oklch(0.26 0.01 285);
+  --color-primary-foreground: oklch(0.985 0.005 85);
+  /* Hover and pressed surfaces are coral, not mint. */
+  --color-accent: oklch(0.78 0.14 40);
+
+  --brand: oklch(0.72 0.17 40);
+  --brand-deep: oklch(0.26 0.01 285);
+  --brand-soft: oklch(0.92 0.08 158);
+  --brand-ink: oklch(0.3 0.06 160);
+}
+
+/* Everything is bold. Secondary text is darker than a typical "muted" grey,
+   because these screens are read in daylight on cheap panels. The explicit
+   weight utilities are overridden too, so no element quietly falls back to
+   regular. This sheet is unlayered, so it wins over Tailwind's utilities. */
+body {
+  font-weight: 700;
+}
+
+.font-thin,
+.font-extralight,
+.font-light,
+.font-normal,
+.font-medium,
+.font-semibold {
+  font-weight: 700;
+}
+
+input,
+select,
+textarea,
+button {
+  font-weight: 700;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: oklch(0.42 0.015 285);
+  font-weight: 700;
+  opacity: 1;
+}
+
+body {
+  font-family:
+    "Atkinson Hyperlegible", "Noto Sans Devanagari", ui-sans-serif, system-ui,
+    "Segoe UI", Roboto, sans-serif;
+  background: #ff7f5a;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+}
+
+input {
+  caret-color: var(--brand);
+}
+
+:focus-visible {
+  outline: 3px solid var(--brand-deep);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-input) transparent;
+}
+
+/* ------------------------------------------------------------------------ *
+ * The splash: paperwork into the mark, then a tiny journey end to end.
+ * ------------------------------------------------------------------------ */
+
+.splash {
+  transition:
+    opacity 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.splash-leaving {
+  opacity: 0;
+  transform: scale(1.05);
+  pointer-events: none;
+}
+
+/* The mark's stage. It gives up height and the mark shrinks once the
+   paperwork is in, to make room for the line and the journey. */
+.splash-stage {
+  height: 10rem;
+  width: 10rem;
+  transition:
+    height 600ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.splash-stage[data-phase="1"],
+.splash-stage[data-phase="2"] {
+  height: 5.5rem;
+}
+.splash-stage[data-phase="1"] .splash-mark,
+.splash-stage[data-phase="2"] .splash-mark {
+  transform: scale(0.7);
+}
+.splash-mark {
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* One sheet of paper: charcoal outline, hard shadow, three ruled lines. */
+.sheet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 60px;
+  margin: -30px 0 0 -23px;
+  border: 3px solid #232326;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #232326;
+  background:
+    linear-gradient(#232326, #232326) 7px 12px / 24px 3px no-repeat,
+    linear-gradient(#232326, #232326) 7px 22px / 16px 3px no-repeat,
+    linear-gradient(#232326, #232326) 7px 32px / 22px 3px no-repeat,
+    var(--sheet-bg);
+  opacity: 0;
+  animation: sheet-in 1.2s cubic-bezier(0.55, 0, 0.35, 1) both;
+}
+
+/* Out at the edge, drawn in to the centre, shrinking as it goes behind the
+   mark. The mark hides it, so it reads as going inside. Runs once. */
+@keyframes sheet-in {
+  0% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(1);
+  }
+  14% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.2);
+  }
+}
+
+/* The mark swallows a sheet roughly every 0.14s: a small, quick gulp. */
+.splash-mark {
+  animation: gulp 0.42s ease-in-out 5;
+  transform-origin: 50% 60%;
+}
+@keyframes gulp {
+  0%,
+  100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.07;
+  }
+}
+
+/* The headline writes itself in, word by word; the first word gets a coral
+   highlighter swipe. */
+.word {
+  display: inline-block;
+  margin-right: 0.26em;
+  opacity: 0;
+  animation: word-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.word-mark {
+  background: linear-gradient(#ff7f5a, #ff7f5a) no-repeat 0 90% / 0% 42%;
+  animation:
+    word-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    swipe 700ms 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes swipe {
+  to {
+    background-size: 100% 42%;
+  }
+}
+
+/* The journey: a road, five stops, and a document that rides it. */
+.journey {
+  animation: word-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.road-base,
+.road-fill {
+  position: absolute;
+  top: 21px;
+  left: 24px;
+  right: 24px;
+  height: 6px;
+  border-radius: 3px;
+}
+.road-base {
+  background: repeating-linear-gradient(
+    90deg,
+    #232326 0 8px,
+    transparent 8px 14px
+  );
+  opacity: 0.35;
+}
+.road-fill {
+  background: #ff7f5a;
+  border: 2px solid #232326;
+  height: 8px;
+  top: 20px;
+  transform-origin: left;
+  transition: transform 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.traveller {
+  position: absolute;
+  top: -22px;
+  width: 0;
+  display: flex;
+  justify-content: center;
+  transition: left 480ms cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+.stop {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #232326;
+  border-radius: 14px;
+  background: var(--color-background);
+  color: #232326;
+  transition:
+    background-color 200ms,
+    box-shadow 200ms;
+}
+.stop-on {
+  background: #ff7f5a;
+  box-shadow: 3px 3px 0 #232326;
+  animation: pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.stop-final {
+  background: #adefc4;
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.caption {
+  animation: word-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.splash-dots i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #232326;
+  border-radius: 999px;
+  background: #ff7f5a;
+  animation: dot 1s ease-in-out infinite;
+}
+.splash-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.splash-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dot {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+    opacity: 0;
+  }
+  .splash-mark,
+  .splash-dots i,
+  .word,
+  .word-mark,
+  .journey,
+  .caption,
+  .stop-on {
+    animation: none;
+    opacity: 1;
+  }
+  .word-mark {
+    background-size: 100% 42%;
+  }
+  .road-fill,
+  .traveller {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------------ *
+ * Hover is orange. Everything that can be pressed warms to the brand colour
+ * under a cursor, so what is interactive is the same everywhere.
+ * ------------------------------------------------------------------------ */
+:root {
+  --hover-soft: oklch(0.93 0.075 48);
+  --hover: oklch(0.8 0.14 45);
+}
+.hover-orange {
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+.hover-orange:hover:not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--hover-soft);
+}
+
+/* The catch-all: any button or link-button warms by laying a translucent orange
+   over whatever colour it already has, so no pressable thing is left out and
+   the coral action buttons, the mint ticks and the white cards all agree. */
+@media (hover: hover) {
+  button:hover:not(:disabled):not(.no-warm),
+  [role="button"]:hover:not([aria-disabled="true"]):not(.no-warm) {
+    background-image: linear-gradient(
+      color-mix(in oklab, var(--hover) 34%, transparent),
+      color-mix(in oklab, var(--hover) 34%, transparent)
+    );
+  }
+}
+
+/* A loading placeholder shaped like what is coming, so a screen does not jump. */
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    oklch(0.93 0.02 85) 30%,
+    oklch(0.97 0.03 60) 50%,
+    oklch(0.93 0.02 85) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+  border: 3px solid oklch(0.86 0.02 85);
+}
+@keyframes skeleton {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------------ *
+ * The prescription on paper. Hidden on screen. While printing, everything but
+ * the sheet is hidden and the sheet is laid out as a plain black-on-white page.
+ * ------------------------------------------------------------------------ */
+.rx-sheet {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  body.printing-rx * {
+    visibility: hidden !important;
+  }
+  body.printing-rx .rx-sheet,
+  body.printing-rx .rx-sheet * {
+    visibility: visible !important;
+  }
+  body.printing-rx .rx-sheet {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+    color: #000;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 12.5pt;
+    line-height: 1.4;
+  }
+  .rx-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16pt;
+    border-bottom: 2pt solid #000;
+    padding-bottom: 8pt;
+  }
+  .rx-hospital {
+    font-size: 19pt;
+    font-weight: 700;
+  }
+  .rx-qr {
+    text-align: center;
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+  }
+  .rx-patient {
+    margin-top: 8pt;
+    display: grid;
+    gap: 2pt;
+  }
+  .rx-mark {
+    font-size: 30pt;
+    margin: 8pt 0 2pt;
+  }
+  .rx-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .rx-table th,
+  .rx-table td {
+    border-bottom: 0.75pt solid #000;
+    padding: 5pt 6pt 5pt 0;
+    text-align: left;
+    vertical-align: top;
+  }
+  .rx-table th {
+    border-bottom-width: 1.5pt;
+    font-size: 10.5pt;
+  }
+  .rx-nowrap {
+    white-space: nowrap;
+  }
+  .rx-sub {
+    font-size: 10.5pt;
+  }
+  .rx-block {
+    margin-top: 10pt;
+  }
+  .rx-foot {
+    margin-top: 34pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24pt;
+    break-inside: avoid;
+  }
+  .rx-small {
+    font-size: 9.5pt;
+  }
+  .rx-sign {
+    min-width: 190pt;
+    text-align: center;
+  }
+  .rx-line {
+    border-top: 1pt solid #000;
+    margin-bottom: 3pt;
+  }
+  /* The stamp sits over the signature line, a little crooked, like a real one. */
+  .rx-stamp {
+    display: block;
+    margin: 0 auto -10pt;
+    width: 78pt;
+    height: 78pt;
+    transform: rotate(-8deg);
+    opacity: 0.88;
+  }
+}
+
+/* Large print, for a patient who cannot see well: the same sheet, scaled up. */
+@media print {
+  body.printing-rx.rx-large .rx-sheet {
+    zoom: 1.4;
+  }
+}
+
+/* The token slip: a small card, centred, the number as big as the paper allows. */
+@media print {
+  body.printing-rx .rx-sheet.rx-token {
+    width: 80mm;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    border: 1.5pt solid #000;
+    padding: 8pt;
+  }
+  .rx-token .rx-hospital {
+    font-size: 14pt;
+  }
+  .rx-token-label {
+    margin-top: 6pt;
+    font-size: 11pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .rx-token-number {
+    font-size: 54pt;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .rx-token .rx-qr {
+    margin: 8pt auto 4pt;
+  }
+}
+
+/* The patient's line under each medicine, in Hindi. */
+.rx-hi {
+  font-family: "Noto Sans Devanagari", "Nirmala UI", sans-serif;
+  font-size: 0.95em;
+}
+
+/* The "working" bar: a short coral bar running across the top while a person waits on the server. */
+.pending-bar-run {
+  animation: pending-run 1.1s ease-in-out infinite;
+}
+@keyframes pending-run {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pending-bar-run { animation: none; width: 100%; opacity: 0.6; }
+}
