@@ -12,7 +12,9 @@
     "test": "tsx --test packages/core/test/*.test.ts",
     "test:integration": "node --test --test-concurrency=1 scripts/integration.test.mjs",
     "check": "npm run typecheck:apps && npm run functions:build",
-    "typecheck:apps": "tsc -p apps/clinic --noEmit && tsc -p apps/patient --noEmit"
+    "typecheck:apps": "tsc -p apps/clinic --noEmit && tsc -p apps/patient --noEmit",
+    "build:live": "npm run build:live --workspace @parcha/clinic && npm run build:live --workspace @parcha/patient",
+    "deploy:live": "npm run build:live && npm run functions:build && firebase deploy --project live"
   },
   "devDependencies": {
     "@types/node": "^20",
