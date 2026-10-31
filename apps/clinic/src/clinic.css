@@ -1,0 +1,26 @@
+/**
+ * Clinic-only additions over the shared theme. The clinic is a web app now:
+ * read at arm's length on a counter screen, so a larger base size than the
+ * browser default, like the patient app.
+ */
+html {
+  font-size: 17px;
+}
+
+/* The wiring diagram: a short white dash that runs along every wire, from the
+   sender towards the receiver, so the direction patients flow is visible. */
+.wire-flow {
+  stroke: #fff;
+  stroke-dasharray: 1 16;
+  animation: wire-flow 1.1s linear infinite;
+}
+@keyframes wire-flow {
+  to {
+    stroke-dashoffset: -17;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-flow {
+    animation: none;
+  }
+}

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "seed": "node scripts/seed.mjs",
+    "dev:clinic": "npm run dev --workspace @parcha/clinic",
     "emulators": "node scripts/emulators.mjs",
     "functions:build": "npm run build --workspace @parcha/functions",
     "test": "tsx --test packages/core/test/*.test.ts"
@@ -16,6 +17,7 @@
   },
   "workspaces": [
     "packages/*",
+    "apps/*",
     "firebase/functions"
   ]
 }
