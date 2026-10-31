@@ -20,3 +20,4 @@ export {
   type Loadable,
 } from "./hooks";
 export * from "./queries";
+export * from "./mutations";
