@@ -9,6 +9,7 @@ are the detail.
 | Page | What it covers |
 | --- | --- |
 | [Getting started](GETTING-STARTED.md) | Install, run the emulators, seed, start the apps, fix the usual problems |
+| [Demo guide](DEMO.md) | The five-minute path, every demo account, things worth trying |
 | [Deploying](DEPLOY.md) | The live project, its sites, how to ship a change, what bit us |
 | [Testing](TESTING.md) | Unit tests, integration tests, the load test, screenshots, CI |
 
