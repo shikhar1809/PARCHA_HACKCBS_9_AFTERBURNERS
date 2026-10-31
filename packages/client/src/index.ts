@@ -31,6 +31,7 @@ export {
 } from "./hooks";
 export * from "./queries";
 export * from "./mutations";
+export * from "./comms";
 export { vaultClear, vaultDelete, vaultGet, vaultKeys, vaultPut, vaultStats } from "./vault";
 export {
   callQueued,
