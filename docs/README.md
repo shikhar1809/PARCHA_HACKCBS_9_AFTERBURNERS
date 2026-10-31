@@ -21,4 +21,5 @@ are the detail.
 | [Security](SECURITY.md) | Hospital walls, who can read and write what, sessions, privacy |
 | [Functions API](FUNCTIONS-API.md) | Every Cloud Function: who may call it and what it does |
 | [Safety check](SAFETY-ENGINE.md) | The drug allergy, interaction and vitals rules |
+| [Offline](OFFLINE.md) | How both apps keep working with no connection |
 
