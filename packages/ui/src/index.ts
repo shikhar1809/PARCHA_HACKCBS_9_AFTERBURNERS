@@ -16,3 +16,10 @@ export { DosePictogram, FormIcon, TimingPictogram } from "./dose-pictogram";
 export { BodyMap, type BodyView } from "./body-map";
 export { Splash, useFontsReady, useMinTime } from "./splash";
 export { BringIcon } from "./bring-icon";
+export {
+  PrescriptionSheet,
+  TokenSlip,
+  printPrescription,
+  type SheetHospital,
+  type SheetPatient,
+} from "./prescription-sheet";
