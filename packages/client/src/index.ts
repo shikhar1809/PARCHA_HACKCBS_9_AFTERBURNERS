@@ -11,6 +11,16 @@ export {
 } from "./firebase";
 export { setReauthHandler } from "./firebase";
 export {
+  ErrorBoundary,
+  OnlineBanner,
+  SessionGuard,
+  setMyDuty,
+  useMyDutySwitch,
+  signOutUser,
+  takeSessionEndedNotice,
+  useOnline,
+} from "./session";
+export {
   setHospitalScope,
   useHospitalScope,
   plain,
@@ -21,3 +31,4 @@ export {
 } from "./hooks";
 export * from "./queries";
 export * from "./mutations";
+export { StaffSessionGate } from "./staff-session";
