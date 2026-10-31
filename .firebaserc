@@ -1,0 +1,40 @@
+{
+  "projects": {
+    "default": "parcha-dev",
+    "live": "parcha-101"
+  },
+  "targets": {
+    "parcha-dev": {
+      "hosting": {
+        "clinic": [
+          "parcha-clinic"
+        ],
+        "patient": [
+          "parcha-patient"
+        ]
+      }
+    },
+    "parcha-101": {
+      "hosting": {
+        "clinic": [
+          "parcha-clinic"
+        ],
+        "patient": [
+          "parcha-101-patient"
+        ],
+        "android": [
+          "parcha-android"
+        ],
+        "desktop": [
+          "parcha-desktop"
+        ],
+        "web": [
+          "parcha"
+        ],
+        "old-clinic": [
+          "parcha-101"
+        ]
+      }
+    }
+  }
+}

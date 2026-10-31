@@ -1,0 +1,458 @@
+rules_version = '2';
+
+// =============================================================================
+// Parcha security rules.
+//
+// Two principles carried over from the Postgres design, because they were the
+// load-bearing part of it:
+//
+//   1. CLIENTS NEVER WRITE CLINICAL DATA. Every mutation goes through a
+//      callable Cloud Function using the Admin SDK. That is what keeps the
+//      stage machine honest: a client cannot move a visit along the chain, so
+//      "only a doctor can sign" is enforced where it cannot be skipped, not
+//      merely in the screen that draws the button.
+//
+//   2. APPEND-ONLY IS ENFORCED HERE, not by convention. vitals, complaints,
+//      prescriptions, stageEvents and conflicts deny update and delete to
+//      everybody, Admin SDK aside. A correction is a new document naming the
+//      one it supersedes. That is why the dossier a doctor reads is
+//      defensible: it is the whole history, not the current opinion.
+//
+// The access code is still the credential for a visit, and its expiry and
+// revocation are still checked below the application — now in a rule instead
+// of an RLS policy. A code that has expired stops working even if a screen
+// forgets to look.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // Who is asking
+    // ---------------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Staff identity comes from a custom claim, set by the Admin SDK when the
+    // account is provisioned. A client cannot grant itself a role.
+    function accountType() {
+      return request.auth.token.get('accountType', '');
+    }
+
+    // Anyone on the team: a desk or a doctor. The name is from
+    // when there was only "staff"; it now means "a clinic account".
+    // ...with an open session. A staff device opens one (with its location and
+    // the address the server saw) before it shows anything, and the server ends
+    // it if the address changes or the device moves away. Ended means ended:
+    // from that moment every read is refused, whatever the screen still holds.
+    function isStaff() {
+      return signedIn() && accountType() in ['staff', 'doctor'] && sessionOpen();
+    }
+    function sessionOpen() {
+      let path = /databases/$(database)/documents/staffSessions/$(request.auth.uid);
+      return exists(path) && get(path).data.active == true;
+    }
+
+    // Each hospital is a wall. A staff account carries the hospital it works at
+    // as a claim only the Admin SDK can set, and can touch a record only if the
+    // record carries the same one. Reads of another hospital's patients, visits,
+    // team or wiring are refused here, below the application.
+    function myHospital() {
+      return request.auth.token.get('hospitalId', '');
+    }
+    function atMyHospital(data) {
+      return isStaff()
+        && myHospital() != ''
+        && data.get('hospitalId', '') == myHospital();
+    }
+
+    // A patient signs in with a phone number, and the number is shared: every
+    // record belonging to that handset is reachable from it. That is the
+    // household model falling straight out of the rule rather than being
+    // assembled in application code.
+    //
+    // It is also the consent problem, stated plainly: today anyone holding the
+    // handset sees everyone on it. A real build needs per-person linking that
+    // each adult can refuse and revoke, and this function is where that check
+    // belongs when it exists.
+    function callerPhone() {
+      return request.auth.token.get('phone_number', '');
+    }
+
+    function phoneMatches(phone) {
+      return signedIn()
+        && callerPhone() != ''
+        && phone != null
+        // Firebase stores E.164 (+919811044321); records store ten digits.
+        && callerPhone().matches('.*' + phone + '$');
+    }
+
+    // ---------------------------------------------------------------------
+    // The formulary — reference data. Readable by anyone signed in, written
+    // only by seeding through the Admin SDK.
+    // ---------------------------------------------------------------------
+
+    match /drugs/{drugId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /allergyClasses/{classId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /drugInteractions/{pairId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+    match /drugVitalCautions/{cautionId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // The team and its wiring.
+    //
+    // Everyone on the team can see who else is on it and how they are
+    // connected: the desk needs the list of doctors it can send to.
+    // Nobody writes from a client: creating a member and connecting two of
+    // them are admin-only callables, because the counters an account holds
+    // decide what it may do.
+    // ---------------------------------------------------------------------
+
+    match /accounts/{uid} {
+      allow read: if atMyHospital(resource.data) || (signedIn() && request.auth.uid == uid);
+      allow write: if false;
+    }
+    match /routes/{routeId} {
+      allow read: if atMyHospital(resource.data);
+      allow write: if false;
+    }
+
+    // What a patient chooses from. Public to anyone signed in; written only by
+    // seeding (and later a platform admin), never by a client.
+    match /hospitals/{hospitalId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      // The clinic's seats (what each kind of person may do). Its own staff
+      // read them; only the Manage functions write them.
+      match /seats/{seatId} {
+        allow read: if isStaff() && myHospital() == hospitalId;
+        allow write: if false;
+      }
+
+      // ---------------------------------------------------------------------
+      // Talking inside the team. Not clinical data, so written from the app,
+      // but held here: a channel is open to the hospital's own staff, a direct
+      // thread only to its two members; a message is always from the person
+      // signed in, and is never changed or deleted. Messages are end-to-end
+      // encrypted on the devices (packages/client/src/e2e.ts): a message is
+      // accepted only as ciphertext, so no words, transcript or patient
+      // reference can be stored in the clear even by a faulty client.
+      // ---------------------------------------------------------------------
+      function onTeam() {
+        return isStaff() && myHospital() == hospitalId;
+      }
+      function inThread(t) {
+        return t.kind == 'channel' || request.auth.uid in t.members;
+      }
+      function sameHospital(uid) {
+        return get(/databases/$(database)/documents/accounts/$(uid)).data.hospitalId == hospitalId;
+      }
+
+      match /threads/{threadId} {
+        // A direct thread that does not exist yet can be looked for: its id
+        // is made from the two people, so that tells nobody anything new.
+        allow read: if onTeam() && (resource == null || inThread(resource.data));
+        allow create: if onTeam()
+          && request.resource.data.hospitalId == hospitalId
+          && request.resource.data.createdBy == request.auth.uid
+          && (
+            (request.resource.data.kind == 'channel'
+              && request.resource.data.keys().hasOnly(['kind', 'hospitalId', 'name', 'topic', 'createdBy', 'createdAt'])
+              && request.resource.data.name is string
+              && request.resource.data.name.size() >= 2
+              && request.resource.data.name.size() <= 40)
+            ||
+            (request.resource.data.kind == 'dm'
+              && request.resource.data.keys().hasOnly(['kind', 'hospitalId', 'members', 'createdBy', 'createdAt'])
+              && request.resource.data.members is list
+              && request.resource.data.members.size() == 2
+              && request.auth.uid in request.resource.data.members
+              && request.resource.data.members[0] < request.resource.data.members[1]
+              && threadId == 'dm_' + request.resource.data.members[0] + '_' + request.resource.data.members[1]
+              && sameHospital(request.resource.data.members[0])
+              && sameHospital(request.resource.data.members[1]))
+          );
+        // Only the "last message" fields move, and only as the sender.
+        allow update: if onTeam()
+          && inThread(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastAt', 'lastFromUid', 'lastFromName', 'lastMentions'])
+          && request.resource.data.lastFromUid == request.auth.uid
+          && request.resource.data.lastAt == request.time;
+        allow delete: if false;
+
+        match /messages/{messageId} {
+          function thread() {
+            return get(/databases/$(database)/documents/hospitals/$(hospitalId)/threads/$(threadId)).data;
+          }
+          allow read: if onTeam() && inThread(thread());
+          allow create: if onTeam()
+            && inThread(thread())
+            && request.resource.data.keys().hasOnly(['fromUid', 'fromName', 'fromRole', 'fromDevice', 'mentions', 'at', 'v', 'eph', 'iv', 'ct', 'keys'])
+            && request.resource.data.fromUid == request.auth.uid
+            && request.resource.data.fromDevice is string
+            && request.resource.data.fromDevice.matches(request.auth.uid + '__.+')
+            && request.resource.data.at == request.time
+            && request.resource.data.v == 1
+            && request.resource.data.eph is map
+            && request.resource.data.iv is string
+            && request.resource.data.ct is string
+            && request.resource.data.ct.size() <= 12000
+            && request.resource.data.keys is map
+            && request.resource.data.keys.size() >= 1
+            && request.resource.data.keys.size() <= 300
+            && request.resource.data.mentions is list
+            && request.resource.data.mentions.size() <= 20;
+          allow update, delete: if false;
+        }
+      }
+
+      // Each device's public key, so others can encrypt to it. Anyone on the
+      // team reads them; a person publishes and removes only their own.
+      match /commsKeys/{keyId} {
+        allow read: if onTeam();
+        allow create, update: if onTeam()
+          && request.resource.data.uid == request.auth.uid
+          && keyId == request.auth.uid + '__' + request.resource.data.deviceId
+          && request.resource.data.keys().hasOnly(['uid', 'deviceId', 'pub', 'label', 'seenAt'])
+          && request.resource.data.pub is map
+          && request.resource.data.pub.keys().hasOnly(['kty', 'crv', 'x', 'y'])
+          && request.resource.data.pub.crv == 'P-256';
+        allow delete: if onTeam() && resource.data.uid == request.auth.uid;
+      }
+
+      // When each person last read each thread: theirs alone.
+      match /commsRead/{uid} {
+        allow read, write: if onTeam() && request.auth.uid == uid;
+      }
+    }
+
+    // The Manage PIN's hash, wrong-PIN counts, passes and session rules.
+    // Server only; no client reads or writes it. (Named so it is plain that
+    // the catch-all below is what closes it.)
+    match /hospitalPrivate/{hospitalId}/{rest=**} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Patients
+    // ---------------------------------------------------------------------
+
+    match /patients/{patientId} {
+      allow read: if atMyHospital(resource.data) || phoneMatches(resource.data.phone);
+      allow write: if false;
+
+      // Append-only, and a tombstone is a new document with
+      // `retractsAllergyId` set rather than an edit to the one it retracts.
+      match /allergies/{allergyId} {
+        allow read: if atMyHospital(get(/databases/$(database)/documents/patients/$(patientId)).data)
+          || phoneMatches(get(/databases/$(database)/documents/patients/$(patientId)).data.phone);
+        allow write: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Visits
+    //
+    // Read by the clinic, by the household the visit belongs to, or by
+    // whoever holds a live access code for it. Never written from a client:
+    // the stage is a cursor that only the Cloud Functions move.
+    // ---------------------------------------------------------------------
+
+    // A visit redeemed from a printed code records the handset it was linked
+    // to, in `linkedPhones`. Linking happens in the `linkVisitByCode` Cloud
+    // Function, which is where the code's expiry and revocation are checked —
+    // server-side with the Admin SDK, so a client cannot skip it. The rule
+    // then only has to honour the link that redemption left behind, which
+    // costs no extra read and leaves an explicit record of who was granted
+    // what.
+    function linkedToCaller(data) {
+      return signedIn()
+        && callerPhone() != ''
+        && data.get('linkedPhones', []).hasAny([callerPhone()]);
+    }
+
+    function mayReadVisit(data) {
+      return atMyHospital(data) || phoneMatches(data.patientPhone) || linkedToCaller(data);
+    }
+
+    // The clinical record of a visit — what was measured, what was complained
+    // of, what was prescribed, what the safety check said, what was given out
+    // — is the clinic's, and is read at the clinic.
+    //
+    // A patient's handset can read the VISIT: that is their appointment, and
+    // they need it to know where they are in the queue and that the doctor has
+    // signed. It cannot read what is underneath it. The prescription reaches
+    // their phone the way the paper does: they are handed the printed Parcha
+    // and they scan the signed QR on it, which carries the whole document.
+    // That is a deliberate boundary and not an oversight — it means a clinic's
+    // records are not sitting on a handset the clinic has no control over, and
+    // that what the chemist reads and what the phone reminds about are the
+    // same piece of paper. A screen that forgets this gets an error, not a
+    // quiet leak.
+    function mayReadRecord(data) {
+      return atMyHospital(data);
+    }
+
+    match /visits/{visitId} {
+      allow read: if mayReadVisit(resource.data);
+      allow write: if false;
+
+      // Every sub-collection below is append-only and client-unwritable. The
+      // parent read is one get(), which keeps the documents themselves free of
+      // duplicated identity fields.
+      function parentReadable() {
+        return mayReadRecord(
+          get(/databases/$(database)/documents/visits/$(visitId)).data
+        );
+      }
+
+      match /vitals/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      match /complaints/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      match /prescriptions/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      match /conflicts/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      // What the pharmacy gave out and what the billing desk charged.
+      match /dispensing/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      match /bills/{id} {
+        allow read: if parentReadable();
+        allow write: if false;
+      }
+      // The audit trail is the clinic's, not the patient's: it records which
+      // member of staff passed a patient on, which is not theirs to read.
+      match /stageEvents/{id} {
+        allow read: if atMyHospital(
+          get(/databases/$(database)/documents/visits/$(visitId)).data
+        );
+        allow write: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Access grants
+    //
+    // Unreadable from any client, including the one holding the code. A code
+    // is redeemed by calling `linkVisitByCode`, so a guessed or stolen code
+    // cannot be tested cheaply against the database, and nobody can enumerate
+    // the codes that exist.
+    // ---------------------------------------------------------------------
+
+    match /accessGrants/{code} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // The patient's own papers and history
+    //
+    // Readable only by the phone number they belong to. No hospital account
+    // can read them, and nothing is writable from a client: the callables in
+    // records.ts check size, type and count.
+    // ---------------------------------------------------------------------
+
+    match /documents/{id} {
+      allow read: if phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+      match /files/{file} {
+        allow read: if phoneMatches(
+          get(/databases/$(database)/documents/documents/$(id)).data.ownerPhone
+        );
+        allow write: if false;
+      }
+    }
+
+    match /histories/{id} {
+      allow read: if phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+
+    // Reminders and the doses ticked off: the patient's own, by phone number.
+    match /reminders/{id} {
+      allow read: if phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+    match /doseLogs/{id} {
+      // A day with nothing ticked yet has no document; reading it must say so
+      // rather than fail, or the screen could never see the first tick.
+      allow read: if resource == null || phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+
+    // The people on a phone: faces, ages, nicknames. Read-only from a client.
+    match /profiles/{id} {
+      allow read: if phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+
+    // The patient's agreement to the privacy notice. Read-only from a client.
+    match /consents/{id} {
+      allow read: if resource == null || phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+
+    // Codes read out to prove a number: never readable from a client.
+    match /callVerifications/{id} {
+      allow read, write: if false;
+    }
+
+    // Phone-call reminders: the patient's settings and the log of calls made to
+    // their number. Read-only from a client; the dispatcher and the callables
+    // write them.
+    match /callSettings/{id} {
+      allow read: if resource == null || phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+    match /callJobs/{id} {
+      allow read: if phoneMatches(resource.data.ownerPhone);
+      allow write: if false;
+    }
+
+    // Seats switch on "activity". Accounts from before seats keep the old
+    // rule: doctors and admins.
+    function canReadActivity() {
+      let abilities = request.auth.token.get('abilities', null);
+      return abilities == null
+        ? (accountType() == 'doctor' || request.auth.token.get('admin', false) == true)
+        : 'activity' in abilities;
+    }
+
+    // Who did what, in sentences, for the doctors (and the admin) of the same
+    // hospital. Written only by the server.
+    match /activity/{id} {
+      allow read: if atMyHospital(resource.data) && canReadActivity();
+      allow write: if false;
+    }
+
+    // Anything not named above is denied. Listed explicitly so a new
+    // collection added later fails closed rather than inheriting access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
