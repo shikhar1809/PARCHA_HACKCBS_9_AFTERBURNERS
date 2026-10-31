@@ -30,4 +30,5 @@ are the detail.
 | --- | --- |
 | [Clinic app](CLINIC-APP.md) | Desk, doctor, team: every screen and who sees it |
 | [Patient app](PATIENT-APP.md) | Home, schedule, visits, records, shared phones, easy mode |
+| [Reminder calls](CALLING.md) | The calling agent, verified numbers, Twilio |
 
