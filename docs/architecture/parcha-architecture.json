@@ -1,0 +1,455 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Parcha: how a visit moves through the system",
+    "output": ".archify/architecture-parcha-20261027-180500/parcha-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/shikhar1809/PARCHA_HACKCBS_9_AFTERBURNERS.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "ffe2ba1d6e0a8c7beb4e2988dc4bf22d79dd4db0"
+    }
+  },
+  "components": [
+    {
+      "id": "patient",
+      "type": "frontend",
+      "label": "Patient app",
+      "sublabel": "PWA + Android · hi / en / Hinglish",
+      "pos": [
+        40,
+        160
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/patient/capacitor.config.ts",
+          "line": 17,
+          "end_line": 19,
+          "label": "Android shell"
+        },
+        {
+          "path": "apps/patient/src/screens/VisitScreen.tsx",
+          "line": 95,
+          "end_line": 119,
+          "label": "prescription as pictures"
+        }
+      ]
+    },
+    {
+      "id": "clinic",
+      "type": "frontend",
+      "label": "Clinic app",
+      "sublabel": "React · desk, doctor, pharmacy",
+      "pos": [
+        40,
+        370
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/clinic/src/App.tsx",
+          "line": 75,
+          "end_line": 120,
+          "label": "screens by role"
+        }
+      ]
+    },
+    {
+      "id": "desktop",
+      "type": "frontend",
+      "label": "Desktop program",
+      "sublabel": "Electron · prints locally",
+      "pos": [
+        40,
+        560
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/desktop/main.cjs",
+          "line": 66,
+          "end_line": 80,
+          "label": "window hosting the clinic app"
+        }
+      ]
+    },
+    {
+      "id": "outbox",
+      "type": "frontend",
+      "label": "Offline outbox",
+      "sublabel": "queued writes · AES-GCM vault",
+      "pos": [
+        330,
+        560
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "tag": "on the device",
+      "sources": [
+        {
+          "path": "packages/client/src/outbox.ts",
+          "line": 140,
+          "label": "callQueued"
+        },
+        {
+          "path": "packages/client/src/vault.ts",
+          "line": 67,
+          "label": "AES-GCM key"
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Firebase Auth",
+      "sublabel": "roles as server-set claims",
+      "pos": [
+        330,
+        60
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/clinic/src/auth.tsx",
+          "line": 70,
+          "end_line": 105,
+          "label": "claims read from token"
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "security",
+      "label": "Security rules",
+      "sublabel": "own hospital only · reads",
+      "pos": [
+        330,
+        270
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "tag": "clinical writes: server only",
+      "sources": [
+        {
+          "path": "firestore.rules",
+          "line": 135,
+          "end_line": 160,
+          "label": "hospital scope"
+        },
+        {
+          "path": "firestore.rules",
+          "line": 292,
+          "end_line": 294,
+          "label": "visits: write if false"
+        }
+      ]
+    },
+    {
+      "id": "functions",
+      "type": "backend",
+      "label": "Cloud Functions",
+      "sublabel": "71 functions · asia-south1",
+      "pos": [
+        640,
+        370
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "tag": "checks role + hospital",
+      "sources": [
+        {
+          "path": "firebase/functions/src/options.ts",
+          "line": 30,
+          "label": "region"
+        },
+        {
+          "path": "firebase/functions/src/index.ts",
+          "line": 361,
+          "end_line": 420,
+          "label": "signPrescription"
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Safety engine",
+      "sublabel": "same code in browser + server",
+      "pos": [
+        640,
+        560
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "tag": "allergy · dose · pregnancy",
+      "sources": [
+        {
+          "path": "packages/core/src/conflicts.ts",
+          "line": 116,
+          "label": "runConflictEngine"
+        },
+        {
+          "path": "packages/client/src/localSafety.ts",
+          "line": 22,
+          "label": "offline run"
+        }
+      ]
+    },
+    {
+      "id": "firestore",
+      "type": "database",
+      "label": "Firestore",
+      "sublabel": "asia-south1 (Mumbai)",
+      "pos": [
+        950,
+        270
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "tag": "append-only clinical records",
+      "sources": [
+        {
+          "path": "packages/client/src/firebase.ts",
+          "line": 73,
+          "label": "device cache"
+        },
+        {
+          "path": "firestore.rules",
+          "line": 296,
+          "end_line": 298,
+          "label": "sub-collections append-only"
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "type": "backend",
+      "label": "Scheduled jobs",
+      "sublabel": "15-min sweep · reminder calls",
+      "pos": [
+        950,
+        60
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "firebase/functions/src/previsit.ts",
+          "line": 738,
+          "label": "moveOverdueRequests"
+        },
+        {
+          "path": "firebase/functions/src/calls.ts",
+          "line": 340,
+          "label": "dispatchReminderCalls"
+        }
+      ]
+    },
+    {
+      "id": "twilio",
+      "type": "external",
+      "label": "Twilio voice",
+      "sublabel": "adapter · not live-tested",
+      "pos": [
+        1220,
+        60
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "firebase/functions/src/calls.ts",
+          "line": 16,
+          "end_line": 17,
+          "label": "NOT tested note"
+        }
+      ]
+    },
+    {
+      "id": "fcm",
+      "type": "cloud",
+      "label": "Push (FCM)",
+      "sublabel": "to the patient's phone",
+      "pos": [
+        950,
+        470
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "firebase/functions/src/index.ts",
+          "line": 660,
+          "label": "sendEachForMulticast"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Google Cloud · asia-south1 (Mumbai)",
+      "wraps": [
+        "functions",
+        "engine",
+        "firestore",
+        "jobs",
+        "fcm"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "patient-reads",
+      "from": "patient",
+      "to": "rules",
+      "label": "live reads"
+    },
+    {
+      "id": "clinic-reads",
+      "from": "clinic",
+      "to": "rules",
+      "label": "live reads"
+    },
+    {
+      "id": "rules-firestore",
+      "from": "rules",
+      "to": "firestore",
+      "label": "allowed reads",
+      "variant": "security"
+    },
+    {
+      "id": "auth-rules",
+      "from": "auth",
+      "to": "rules",
+      "label": "role + hospital claims",
+      "variant": "security"
+    },
+    {
+      "id": "clinic-outbox",
+      "from": "clinic",
+      "to": "outbox",
+      "label": "every action"
+    },
+    {
+      "id": "desktop-hosts",
+      "from": "desktop",
+      "to": "clinic",
+      "label": "hosts",
+      "variant": "dashed"
+    },
+    {
+      "id": "outbox-functions",
+      "from": "outbox",
+      "to": "functions",
+      "label": "HTTPS callable, retried",
+      "variant": "emphasis"
+    },
+    {
+      "id": "patient-functions",
+      "from": "patient",
+      "to": "functions",
+      "label": "request visit, take dose",
+      "variant": "emphasis"
+    },
+    {
+      "id": "functions-engine",
+      "from": "functions",
+      "to": "engine",
+      "label": "re-check on sign"
+    },
+    {
+      "id": "outbox-engine",
+      "from": "outbox",
+      "to": "engine",
+      "label": "offline check",
+      "variant": "dashed"
+    },
+    {
+      "id": "functions-firestore",
+      "from": "functions",
+      "to": "firestore",
+      "label": "transactions + audit log",
+      "variant": "emphasis"
+    },
+    {
+      "id": "jobs-firestore",
+      "from": "jobs",
+      "to": "firestore",
+      "label": "overdue requests, due calls"
+    },
+    {
+      "id": "jobs-twilio",
+      "from": "jobs",
+      "to": "twilio",
+      "label": "place call"
+    },
+    {
+      "id": "functions-fcm",
+      "from": "functions",
+      "to": "fcm",
+      "label": "notify"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "orange",
+      "title": "Who can do what",
+      "items": [
+        "Roles are custom claims only the server sets",
+        "Clinical records are written only by Cloud Functions",
+        "Signing re-asks the doctor's password if older than 5 minutes"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Offline",
+      "items": [
+        "Actions queue on the device and send when back online",
+        "The safety check runs locally when the server is unreachable",
+        "The desktop keeps an AES-GCM encrypted copy"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Not yet proven",
+      "items": [
+        "Twilio calls not run on a live account",
+        "Android build not run on a device",
+        "No real users yet"
+      ]
+    }
+  ]
+}
