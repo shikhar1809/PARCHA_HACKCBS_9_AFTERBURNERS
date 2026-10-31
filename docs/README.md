@@ -3,7 +3,6 @@
 Start with the [project README](../README.md) for what Parcha is. These pages
 are the detail.
 
-
 ## Using and running it
 
 | Page | What it covers |
@@ -12,7 +11,6 @@ are the detail.
 | [Demo guide](DEMO.md) | The five-minute path, every demo account, things worth trying |
 | [Deploying](DEPLOY.md) | The live project, its sites, how to ship a change, what bit us |
 | [Testing](TESTING.md) | Unit tests, integration tests, the load test, screenshots, CI |
-
 
 ## How it works
 
@@ -26,7 +24,6 @@ are the detail.
 | [Safety check](SAFETY-ENGINE.md) | The drug allergy, interaction and vitals rules |
 | [Offline](OFFLINE.md) | How both apps keep working with no connection |
 
-
 ## The apps
 
 | Page | What it covers |
@@ -37,3 +34,8 @@ are the detail.
 | [Android](ANDROID.md) | Building and running the Android app |
 | [Desktop](DESKTOP.md) | The Windows, macOS and Linux program |
 
+## Background
+
+| Page | What it covers |
+| --- | --- |
+| [Research](RESEARCH.md) | What clinics and patients complain about, mapped to the product |

@@ -63,3 +63,14 @@ npm run seed             # the demo hospitals, doctors and patients
 npm test                  # unit tests
 npm run check             # typecheck both apps and build the functions
 ```
+
+## Documentation
+
+Everything is indexed in [docs/README.md](docs/README.md).
+
+## Contributing
+
+Changes go through a pull request that passes CI (types, unit tests, builds, and
+the integration tests against the emulators). Keep logic that both the apps and the
+functions need in `packages/core`, with a test. A new write is a new function in
+`firebase/functions`, never a client write.
