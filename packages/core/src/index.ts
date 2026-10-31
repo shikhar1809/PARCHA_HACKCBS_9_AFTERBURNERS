@@ -31,5 +31,7 @@ export * from "./privacy.js";
 export * from "./profile.js";
 export * from "./session.js";
 export * from "./seats.js";
+export * from "./access.js";
+export * from "./counter.js";
 export * from "./reading.js";
 export * from "./soundsLike.js";
