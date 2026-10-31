@@ -31,8 +31,10 @@ export {
 } from "./hooks";
 export * from "./queries";
 export * from "./mutations";
+export * from "./records";
 export * from "./comms";
 export { vaultClear, vaultDelete, vaultGet, vaultKeys, vaultPut, vaultStats } from "./vault";
+export { readRx, rxTokenFrom, type RxRead } from "./rx";
 export {
   callQueued,
   flushOutbox,
@@ -44,5 +46,7 @@ export {
   useOutbox,
   useOutboxSync,
 } from "./outbox";
+export * from "./schedule";
+export * from "./localSafety";
 export { StaffSessionGate } from "./staff-session";
 export * from "./pending";
