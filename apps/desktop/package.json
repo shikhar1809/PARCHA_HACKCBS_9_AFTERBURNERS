@@ -1,0 +1,61 @@
+{
+  "name": "@parcha/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Parcha for the desk: the clinic app (or the patient app) as a Windows, macOS or Linux program",
+  "author": "Parcha",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron . --dev",
+    "start:built": "electron .",
+    "build:web": "node scripts/build-web.mjs",
+    "pack": "npm run build:web && electron-builder --dir",
+    "dist": "npm run build:web && electron-builder"
+  },
+  "build": {
+    "appId": "in.parcha.desktop",
+    "productName": "Parcha Clinic",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "web/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Parcha Clinic"
+    },
+    "electronVersion": "33.4.11",
+    "npmRebuild": false
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}
