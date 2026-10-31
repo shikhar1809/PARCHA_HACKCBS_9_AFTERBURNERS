@@ -17,4 +17,5 @@ are the detail.
 | --- | --- |
 | [Project structure](PROJECT-STRUCTURE.md) | Every folder and what lives in it |
 | [Architecture](ARCHITECTURE.md) | Why it should stay up, what was measured, the honest limits |
+| [Data model](DATA-MODEL.md) | Collections, the visit stage machine, what each document holds |
 
