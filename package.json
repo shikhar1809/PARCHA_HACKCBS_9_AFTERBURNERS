@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "tsx --test packages/core/test/*.test.ts"
+    "test": "tsx --test packages/core/test/*.test.ts",
+    "functions:build": "npm run build --workspace @parcha/functions"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -11,6 +12,7 @@
     "typescript": "^5"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "firebase/functions"
   ]
 }
