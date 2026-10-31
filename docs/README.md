@@ -29,4 +29,5 @@ are the detail.
 | Page | What it covers |
 | --- | --- |
 | [Clinic app](CLINIC-APP.md) | Desk, doctor, team: every screen and who sees it |
+| [Patient app](PATIENT-APP.md) | Home, schedule, visits, records, shared phones, easy mode |
 
