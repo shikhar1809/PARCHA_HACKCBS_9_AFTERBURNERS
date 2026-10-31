@@ -10,3 +10,10 @@ are the detail.
 | --- | --- |
 | [Getting started](GETTING-STARTED.md) | Install, run the emulators, seed, start the apps, fix the usual problems |
 
+
+## How it works
+
+| Page | What it covers |
+| --- | --- |
+| [Project structure](PROJECT-STRUCTURE.md) | Every folder and what lives in it |
+
