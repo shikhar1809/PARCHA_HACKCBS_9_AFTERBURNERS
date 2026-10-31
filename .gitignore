@@ -1,0 +1,90 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local env
+.env.local
+.env
+
+# generated seed output
+/supabase/.generated/
+
+# archify scratch output (pre-existing tooling artefacts)
+/.archify/
+
+# build output from the two Next dev servers (legacy, being replaced)
+.next-hospital/
+.next-patient/
+
+# firebase emulator
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+firebase-export/
+
+# build output of the workspaces
+dist/
+firebase/functions/lib/
+.vite/
+*.apk
+
+# desktop program
+apps/desktop/web/
+apps/desktop/release/
+apps/desktop/build/
+
+# generated
+dev-dist/
+*-debug.log
+*.tsbuildinfo
+.next*/
+!.env.parcha-101
+apps/downloads/dist/
+firebase/functions/.env*
+live-accounts.local.txt
+*.tmp
+*.tmp.*
+# The on-phone text reader's files, copied from node_modules by apps/patient/vite.config.ts
+apps/patient/public/ocr/
+# The clinic's on-device speech model and runtime, fetched by apps/clinic/scripts/speech-assets.mjs
+apps/clinic/public/asr/
