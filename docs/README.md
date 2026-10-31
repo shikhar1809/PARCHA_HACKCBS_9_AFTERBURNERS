@@ -16,4 +16,5 @@ are the detail.
 | Page | What it covers |
 | --- | --- |
 | [Project structure](PROJECT-STRUCTURE.md) | Every folder and what lives in it |
+| [Architecture](ARCHITECTURE.md) | Why it should stay up, what was measured, the honest limits |
 
