@@ -27,5 +27,6 @@ export * from "./duty.js";
 export * from "./fuzzy.js";
 export * from "./schedule.js";
 export * from "./calls.js";
+export * from "./privacy.js";
 export * from "./reading.js";
 export * from "./soundsLike.js";
