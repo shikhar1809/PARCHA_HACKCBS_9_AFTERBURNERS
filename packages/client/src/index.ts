@@ -10,3 +10,13 @@ export {
   usingEmulators,
 } from "./firebase";
 export { setReauthHandler } from "./firebase";
+export {
+  setHospitalScope,
+  useHospitalScope,
+  plain,
+  useDoc,
+  useQuery,
+  useQueryFactory,
+  type Loadable,
+} from "./hooks";
+export * from "./queries";
