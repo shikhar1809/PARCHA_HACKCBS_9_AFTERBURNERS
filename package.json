@@ -2,8 +2,12 @@
   "name": "parcha",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "test": "tsx --test packages/core/test/*.test.ts"
+  },
   "devDependencies": {
     "@types/node": "^20",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "workspaces": [
