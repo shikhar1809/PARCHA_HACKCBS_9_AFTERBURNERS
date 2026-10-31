@@ -31,4 +31,17 @@ export {
 } from "./hooks";
 export * from "./queries";
 export * from "./mutations";
+export { vaultClear, vaultDelete, vaultGet, vaultKeys, vaultPut, vaultStats } from "./vault";
+export {
+  callQueued,
+  flushOutbox,
+  dismissQueued,
+  newClientId,
+  forcedOffline,
+  setForcedOffline,
+  useOffline,
+  useOutbox,
+  useOutboxSync,
+} from "./outbox";
 export { StaffSessionGate } from "./staff-session";
+export * from "./pending";
