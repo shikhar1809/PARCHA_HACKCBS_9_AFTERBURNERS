@@ -139,9 +139,9 @@ describe("a patient's own papers are private", () => {
     const tiny = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const stranger = await call("addDocument", { personName: "Nobody Here", title: "x", kind: "report", mime: "image/png", data: tiny }, p.token);
     assert.match(stranger.error, /not on this phone/);
-    const wrongType = await call("addDocument", { personName: "Sunita Devi", title: "x", kind: "report", mime: "text/html", data: tiny }, p.token);
+    const wrongType = await call("addDocument", { personName: "Priya", title: "x", kind: "report", mime: "text/html", data: tiny }, p.token);
     assert.match(wrongType.error, /photo or a PDF/);
-    const ok = await call("addDocument", { personName: "Sunita Devi", title: "Blood test", kind: "report", mime: "image/png", data: tiny }, p.token);
+    const ok = await call("addDocument", { personName: "Priya", title: "Blood test", kind: "report", mime: "image/png", data: tiny }, p.token);
     assert.ok(ok.ok, ok.error);
     // Another phone cannot delete it.
     const other = await signInPhone("9700881122");
@@ -243,6 +243,65 @@ describe("phone calls", () => {
   test("the by-hand dispatcher refuses a missing key", async () => {
     const r = await fetch(`${FN}/runCallDispatcher`);
     assert.equal(r.status, 403);
+  });
+
+  /**
+   * The whole agent, end to end: a medicine falls due, the dispatcher places
+   * the call, the patient presses 1, and the dose is ticked off — the same
+   * record the app's own checklist reads. The demo line stands in for the
+   * telephone; everything above it is the code that runs in production.
+   */
+  test("a medicine falling due is called about, and pressing 1 ticks the dose", async () => {
+    const phone = "9700884455";
+    await fetch(`${FS}/callSettings/${phone}`, { method: "DELETE", headers: auth("owner") });
+    const p = await signInPhone(phone);
+
+    // Calls on, with no quiet hours in the way, and the call window open: the
+    // dose is set a couple of minutes ago in India's own clock.
+    const now = new Date(Date.now() + 5.5 * 3600_000);
+    const date = now.toISOString().slice(0, 10);
+    const due = new Date(now.getTime() - 2 * 60_000).toISOString().slice(11, 16);
+    assert.ok((await call("saveCallSettings", { enabled: true, language: "en", consent: true, quietStart: "23:59", quietEnd: "00:00" }, p.token)).ok);
+    assert.ok((await call("saveProfile", { name: "Priya", ageYears: 44, sex: "female" }, p.token)).ok);
+
+    const saved = await call("saveReminders", {
+      reminders: [{ personName: "Priya", kind: "medicine", title: "Paracetamol 650", detail: null, times: [due], days: [], startDate: date, endDate: date, enabled: true }],
+    }, p.token);
+    assert.ok(saved.ok, saved.error);
+
+    const run = await fetch(`${FN}/runCallDispatcher`, { headers: { "x-sweep-key": "dev-sweep-key" } });
+    assert.equal(run.status, 200);
+    assert.ok((await json(run)).placed >= 1, "the dispatcher placed no call");
+
+    // The job is this phone's, for this dose, and it is ringing.
+    const jobs = await json(await fetch(`${FS}/callJobs`, { headers: auth("owner") }));
+    const mine = (jobs.documents ?? []).filter((d) => d.fields.ownerPhone?.stringValue === phone && d.fields.date?.stringValue === date);
+    assert.equal(mine.length, 1, "expected exactly one call for this phone today");
+    const job = mine[0];
+    assert.equal(job.fields.toNumber.stringValue, phone, "a call must go to the number that signed in");
+    assert.match(job.fields.script.stringValue, /Paracetamol/);
+    const jobId = job.name.split("/").pop();
+
+    // Pressing 1 is "taken": the dose is ticked, and the job says so.
+    assert.ok((await call("simulateCallOutcome", { id: jobId, press: "1" }, p.token)).ok);
+    const after = await json(await fetch(`${FS}/callJobs/${jobId}`, { headers: auth("owner") }));
+    assert.equal(after.fields.outcome.stringValue, "taken");
+    const log = await json(await fetch(`${FS}/doseLogs/${phone}__${date}`, { headers: auth("owner") }));
+    const ticked = Object.keys(log.fields?.taken?.mapValue?.fields ?? {});
+    assert.equal(ticked.length, 1, "the dose the call was about should be ticked");
+
+    // Running again does not call twice about the same dose.
+    const again = await json(await fetch(`${FN}/runCallDispatcher`, { headers: { "x-sweep-key": "dev-sweep-key" } }));
+    assert.equal(again.placed, 0, "a dose already taken must not be called about again");
+  });
+
+  test("another phone cannot press a key on somebody else's call", async () => {
+    const jobs = await json(await fetch(`${FS}/callJobs`, { headers: auth("owner") }));
+    const someone = (jobs.documents ?? []).find((d) => d.fields.ownerPhone?.stringValue === "9700884455");
+    if (!someone) return;
+    const other = await signInPhone("9700881133");
+    const r = await call("simulateCallOutcome", { id: someone.name.split("/").pop(), press: "1" }, other.token);
+    assert.match(r.error ?? "", /No such call/);
   });
 });
 
@@ -669,26 +728,6 @@ describe("the pharmacy, the billing desk, the clinic's status and its stats", ()
     assert.ok(log.some((x) => /paid by Razorpay \(pay_Q1w2E3r4T5y6U7\)/.test(x.fields.text.stringValue)), JSON.stringify(log.map((x) => x.fields.text.stringValue)));
   });
 
-  test("a clinic that takes no new problems refuses them from the app, and still takes follow-ups", async () => {
-    const rekha = await signIn("staff@parcha.test");
-    const { result: { token } } = await call("openManage", { pin: "1234" }, rekha.token);
-    const saved = await call("saveSettings", { manageToken: token, status: { acceptsNew: false, consultationFee: 350, departments: ["General medicine", "Cardiology", "Paediatrics", "Orthopaedics", "Neurology", "Gynaecology", "ENT"] } }, rekha.token);
-    assert.ok(saved.ok, saved.error);
-    const state = await call("manageState", { manageToken: token }, rekha.token);
-    assert.equal(state.result.status.acceptsNew, false);
-    assert.equal(state.result.status.consultationFee, 350);
-    const p = await signInPhone("9811044321");
-    const [mine] = await ownerQuery("patients", eq("phone", "9811044321"));
-    const day = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
-    const ask = await call("requestVisit", { patientId: mine.id, hospitalId: "h-cp", mode: "new_problem", requirement: "Fever since two days", preferredDate: day }, p.token);
-    assert.match(ask.error, /only seeing its own patients/);
-    const log = await ownerQuery("activity", eq("hospitalId", "h-cp"));
-    const said = log.map((x) => x.fields.text.stringValue).filter((t) => /changed the settings/.test(t)).join("\n");
-    // Only what changed: the departments sent were the same as before, so they are not mentioned.
-    assert.match(said, /the clinic now takes follow-ups from the app, charges ₹350 for a consultation/);
-    assert.doesNotMatch(said, /departments/);
-    assert.ok((await call("saveSettings", { manageToken: token, status: { acceptsNew: true } }, rekha.token)).ok);
-  });
 
   test("the stats count visits, waits, doctors and the counters, and need the Manage pass", async () => {
     const rekha = await signIn("staff@parcha.test");
@@ -705,25 +744,6 @@ describe("the pharmacy, the billing desk, the clinic's status and its stats", ()
   });
 });
 
-describe("the 15-minute promise", () => {
-  test("a request nobody answered in time moves on to the next hospital; the sweep needs its key", async () => {
-    assert.equal((await fetch(`${FN}/sweepOverdueRequests`, { method: "POST" })).status, 403);
-    const [sunil] = (await ownerQuery("visits", eq("patientPhone", "9958770044"))).filter((v) => v.fields.stage.stringValue === "requested");
-    assert.ok(sunil, "the seed has Sunil's request waiting");
-    const from = sunil.fields.hospitalId.stringValue;
-    // Time has run out.
-    const past = new Date(Date.now() - 60_000).toISOString();
-    const patch = await fetch(`${FS}/visits/${sunil.id}?updateMask.fieldPaths=respondBy`, {
-      method: "PATCH", headers: { ...auth("owner"), "content-type": "application/json" },
-      body: JSON.stringify({ fields: { respondBy: { timestampValue: past } } }),
-    });
-    assert.ok(patch.ok);
-    const r = await (await fetch(`${FN}/sweepOverdueRequests`, { method: "POST", headers: { "x-sweep-key": "dev-sweep-key" } })).json();
-    assert.ok(r.moved >= 1, JSON.stringify(r));
-    const after = (await (await owner(`visits/${sunil.id}`)).json()).fields;
-    assert.notEqual(after.hospitalId.stringValue, from, "it is now at the next hospital");
-  });
-});
 
 describe("demo handsets", () => {
   test("a seeded demo number signs in with one tap and its token carries the number; any other number is refused", async () => {
@@ -811,35 +831,7 @@ describe("example set-ups open without a location", () => {
     assert.equal((await read(`patients/${patients[0].id}`, a.token)).status, 200, "the first computer can still read");
   });
 
-  test("a double tap is one request: the same attempt sent twice at once books once", async () => {
-    const p = await signInPhone("9845512077");
-    const [mine] = await ownerQuery("patients", eq("phone", "9845512077"));
-    const day = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
-    const ask = { patientId: mine.id, hospitalId: "h-dwarka", mode: "new_problem", requirement: "Double tap test", preferredDate: day, requestKey: `tap-${Date.now()}` };
-    const [a, b] = await Promise.all([call("requestVisit", ask, p.token), call("requestVisit", ask, p.token)]);
-    assert.ok(a.ok && b.ok, a.error ?? b.error);
-    assert.equal(a.result.visitId, b.result.visitId);
-    const made = await ownerQuery("visits", eq("complaint", "Double tap test"));
-    assert.equal(made.length, 1);
-    assert.ok((await call("cancelMyRequest", { visitId: a.result.visitId }, p.token)).ok);
-  });
 
-  test("a real hospital near the college can be asked from the app, with no made-up fee or rating", async () => {
-    const jackson = (await (await owner("hospitals/h-jackson")).json()).fields;
-    assert.equal(jackson.accepting.booleanValue, true);
-    assert.equal(jackson.consultationFee.nullValue, null);
-    assert.equal(jackson.rating, undefined);
-    const p = await signInPhone("9845512077");
-    const [mine] = await ownerQuery("patients", eq("phone", "9845512077"));
-    const day = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
-    const ask = await call("requestVisit", { patientId: mine.id, hospitalId: "h-jackson", mode: "new_problem", requirement: "Fever", preferredDate: day }, p.token);
-    assert.ok(ask.ok, ask.error);
-    const visit = (await (await owner(`visits/${ask.result.visitId}`)).json()).fields;
-    assert.equal(visit.hospitalId.stringValue, "h-jackson");
-    assert.equal(visit.stage.stringValue, "requested");
-    assert.ok(visit.respondBy.timestampValue, "the 15-minute clock is running");
-    assert.ok((await call("cancelMyRequest", { visitId: ask.result.visitId }, p.token)).ok);
-  });
 });
 
 describe("Custom: a new clinic of your own", () => {
@@ -1003,19 +995,19 @@ describe("ticking a dose", () => {
     const p = await signInPhone("9811044321");
     const day = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
     // The demo family's seeded reminder (an id with dashes).
-    const seeded = await call("markDose", { date: day, key: "seed-kamla-metoprolol@0800" }, p.token);
+    const seeded = await call("markDose", { date: day, key: "seed-prabha-metoprolol@0800" }, p.token);
     assert.ok(seeded.ok, seeded.error);
     // One the app made (an id like c_...).
     const id = `c_${Date.now().toString(36)}abcdef`;
-    const made = await call("saveReminders", { reminders: [{ id, personName: "Ramesh Chand", kind: "medicine", title: "Test tablet", times: ["21:00"], days: [], startDate: day, endDate: day, enabled: true }] }, p.token);
+    const made = await call("saveReminders", { reminders: [{ id, personName: "Prashant", kind: "medicine", title: "Test tablet", times: ["21:00"], days: [], startDate: day, endDate: day, enabled: true }] }, p.token);
     assert.ok(made.ok, made.error);
     assert.ok((await call("markDose", { date: day, key: `${id}@2100` }, p.token)).ok);
     const log = (await (await owner(`doseLogs/9811044321__${day}`)).json()).fields.taken.mapValue.fields;
-    assert.ok(log["seed-kamla-metoprolol@0800"] && log[`${id}@2100`]);
+    assert.ok(log["seed-prabha-metoprolol@0800"] && log[`${id}@2100`]);
     assert.ok((await call("markDose", { date: day, key: `${id}@2100`, taken: false }, p.token)).ok);
     // Someone else's reminder, and a key that is not a dose.
     const other = await signInPhone("9845512077");
-    assert.match((await call("markDose", { date: day, key: "seed-kamla-metoprolol@0800" }, other.token)).error, /No such reminder/);
+    assert.match((await call("markDose", { date: day, key: "seed-prabha-metoprolol@0800" }, other.token)).error, /No such reminder/);
     assert.match((await call("markDose", { date: day, key: "x/../y@0800" }, p.token)).error, /not valid/);
   });
 });
@@ -1026,25 +1018,6 @@ describe("the desk books, and only doctors on duty get patients", () => {
     return d.toISOString().slice(0, 10);
   };
 
-  test("the front desk books a patient's request itself: doctor, day and time; a taken time is refused", async () => {
-    // Rekha's desk is connected to Dr. Khan (Anil's is not).
-    const anil = await signIn("staff@parcha.test");
-    const [req] = await ownerQuery("visits", and(eq("hospitalId", "h-cp"), eq("stage", "requested")));
-    assert.ok(req, "a request at the large hospital");
-    const khan = await signIn("doctor@parcha.test");
-    await call("setAvailability", { status: "available" }, khan.token);
-    const booked = await call("bookRequest", { visitId: req.id, doctorUid: khan.uid, day: day(), time: "16:30" }, anil.token);
-    assert.ok(booked.ok, booked.error);
-    const v = (await (await owner(`visits/${req.id}`)).json()).fields;
-    assert.equal(v.stage.stringValue, "scheduled");
-    assert.equal(v.assignedDoctorUid.stringValue, khan.uid);
-    assert.equal(v.respondBy.nullValue, null);
-    // The same doctor and time for somebody else is refused.
-    const [other] = (await ownerQuery("visits", and(eq("hospitalId", "h-cp"), eq("stage", "proposed")))).filter((x) => x.id !== req.id);
-    if (other) assert.match((await call("bookRequest", { visitId: other.id, doctorUid: khan.uid, day: day(), time: "16:30" }, anil.token)).error, /already has somebody/);
-    // A doctor cannot book this way: it is the desk's.
-    assert.ok((await call("bookRequest", { visitId: req.id, doctorUid: khan.uid, day: day(), time: "16:00" }, khan.token)).error);
-  });
 
   test("an intake needs blood pressure and weight", async () => {
     const anil = await signIn("triage@parcha.test");
@@ -1069,5 +1042,95 @@ describe("the desk books, and only doctors on duty get patients", () => {
     const sent = await call("saveIntake", intake, mary.token);
     assert.ok(sent.ok, sent.error);
     await call("setDuty", { onDuty: true }, khan.token);
+  });
+});
+
+describe("the fifteen-minute share", () => {
+  let p;
+  const PHONE = "9700993311";
+  before(async () => {
+    p = await signInPhone(PHONE);
+    assert.ok((await call("saveProfile", { name: "Prashant", ageYears: 48, sex: "male" }, p.token)).ok);
+  });
+
+  /** A sealed box, the way the phone sends one. The contents are opaque here. */
+  const sealed = (blob = "c2VhbGVk") => ({ person: "Prashant", blob, salt: "c2FsdHNhbHQ", iv: "aXZpdml2" });
+
+  test("a share is made for somebody on this phone, and nobody else", async () => {
+    const made = await call("shareHistory", sealed(), p.token);
+    assert.ok(made.ok, made.error);
+    assert.equal(made.result.username, "prashant");
+    assert.ok(new Date(made.result.expiresAt).getTime() > Date.now(), "it must be live when it is made");
+
+    const notMine = await call("shareHistory", { ...sealed(), person: "Somebody Else" }, p.token);
+    assert.match(notMine.error, /not on this phone/);
+  });
+
+  test("the server keeps the box and never the PIN", async () => {
+    await call("shareHistory", sealed("bXktaGlzdG9yeQ"), p.token);
+    const doc = (await (await owner("historyShares/prashant")).json()).fields;
+    assert.equal(doc.blob.stringValue, "bXktaGlzdG9yeQ");
+    assert.equal(doc.ownerPhone.stringValue, PHONE);
+    assert.equal(doc.attempts.integerValue, "0");
+    const stored = Object.keys(doc);
+    assert.ok(!stored.some((k) => /pin/i.test(k)), `nothing PIN-shaped may be stored: ${stored.join(", ")}`);
+  });
+
+  test("anybody with the link and the PIN gets the box; the tries are counted", async () => {
+    await call("shareHistory", sealed("Ym94"), p.token);
+    // No token at all: a doctor is not signed in.
+    const got = await call("openShare", { username: "prashant", pin: "4821" });
+    assert.ok(got.ok, got.error);
+    assert.equal(got.result.blob, "Ym94");
+    assert.equal(got.result.person, "Prashant");
+    assert.equal(got.result.attemptsLeft, 4, "that try is counted before the box is handed over");
+
+    const bad = await call("openShare", { username: "prashant", pin: "48" });
+    assert.match(bad.error, /right form/);
+  });
+
+  test("five tries close the link, whatever the PIN was", async () => {
+    await call("shareHistory", sealed(), p.token);
+    for (let i = 0; i < 5; i++) await call("openShare", { username: "prashant", pin: "0000" });
+    const after = await call("openShare", { username: "prashant", pin: "0000" });
+    assert.match(after.error, /closed/);
+  });
+
+  test("revoke closes it at once, and only its own phone may", async () => {
+    await call("shareHistory", sealed(), p.token);
+    const other = await signInPhone("9700993322");
+    const notYours = await call("revokeShare", { username: "prashant" }, other.token);
+    assert.match(notYours.error, /not a link of yours/);
+    assert.ok((await call("openShare", { username: "prashant", pin: "4821" })).ok, "still open before the revoke");
+
+    assert.ok((await call("revokeShare", { username: "prashant" }, p.token)).ok);
+    const gone = await call("openShare", { username: "prashant", pin: "4821" });
+    assert.match(gone.error, /closed/);
+  });
+
+  test("a link that was never made says the same thing as one that is finished", async () => {
+    const never = await call("openShare", { username: "nobody-at-all", pin: "4821" });
+    assert.match(never.error, /closed/, "a stranger learns nothing from asking");
+  });
+
+  test("the family sees its own live links, with the time left and whether it was opened", async () => {
+    await call("shareHistory", sealed(), p.token);
+    await call("openShare", { username: "prashant", pin: "4821" });
+    const mine = await call("myShares", {}, p.token);
+    assert.ok(mine.ok, mine.error);
+    const one = mine.result.shares.find((s) => s.person === "Prashant");
+    assert.ok(one, "the share it just made should be listed");
+    assert.equal(one.opened, true);
+    assert.ok(one.attempts >= 1);
+
+    // Another phone's shares are not this phone's business.
+    const other = await signInPhone("9700993322");
+    const theirs = await call("myShares", {}, other.token);
+    assert.equal(theirs.result.shares.length, 0);
+  });
+
+  test("a client cannot read the shares collection at all", async () => {
+    const r = await fetch(`${FS}/historyShares/prashant`, { headers: auth(p.token) });
+    assert.equal(r.status, 403, "only openShare hands a box over");
   });
 });

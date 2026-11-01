@@ -248,7 +248,7 @@ async function patient() {
 
   // The README is in English; the app starts in Hindi.
   await click("English");
-  // One family phone: Sunita, Ramesh and Kamla (the one the demo offers, filled in).
+  // One family phone: Priya, Prashant and Prabha (the one the demo offers, filled in).
   await click("9811044321");
   await sleep(2500);
   // The Auth emulator keeps the one-time codes it "sent".
@@ -262,7 +262,7 @@ async function patient() {
   await sleep(3000);
   // A shared phone asks who is using it.
   await shot("patient-who-is-using");
-  await click("Ramesh Chand");
+  await click("Prashant");
   await sleep(3000);
   await shot("patient-home");
 
