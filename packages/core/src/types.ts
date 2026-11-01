@@ -278,6 +278,14 @@ export type Hospital = {
   id: string;
   /** False until someone with the Manage ability has run the clinic set-up. */
   setupDone?: boolean;
+  /**
+   * Whether the voice pad may learn how this clinic's doctors prescribe.
+   * Absent means off: learning is opted into, never out of, because it sends
+   * prescribing patterns to a hosted service (see docs/plans/MEKO-VOICE-AGENT.md).
+   */
+  mekoEnabled?: boolean;
+  /** Meko datapack id per agent, written once by scripts/meko-bootstrap.mjs. */
+  mekoDatapacks?: Record<"habit" | "formulary" | "scribe", string>;
   /** Which requests from the patient app it takes (both, when absent). */
   acceptsNew?: boolean;
   acceptsFollowUp?: boolean;
@@ -585,7 +593,7 @@ export type ActivityEntry = {
   /** "front desk", "doctor", or "system". */
   actorRole: string;
   kind: string;
-  /** The whole story, e.g. "Rekha (front desk) took Sunita Devi's vitals and sent her to Dr. A. Khan." */
+  /** The whole story, e.g. "Rekha (front desk) took Priya's vitals and sent her to Dr. A. Khan." */
   text: string;
   patientId: string | null;
   visitId: string | null;
