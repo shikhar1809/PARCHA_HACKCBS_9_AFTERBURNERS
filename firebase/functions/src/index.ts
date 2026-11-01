@@ -815,4 +815,4 @@ export { shareHistory, openShare, shareIsOpen, revokeShare, reportShareFailure, 
 // To put it back: enable Secret Manager on the project, set both secrets, and
 // uncomment the line below.
 // export { mekoRecall, mekoRemember, mekoForget, mekoReview, mekoPromote, mekoCurate } from "./mekoCallables.js";
-export { askParcha } from "./assistant.js";
+export { askParcha, hearInstructions, readHandwriting } from "./assistant.js";

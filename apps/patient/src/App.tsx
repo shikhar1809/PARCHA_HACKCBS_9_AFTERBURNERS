@@ -30,7 +30,7 @@ import { ConsentGate } from "./components/privacy";
 import { setLangPerson, useT } from "./i18n";
 import { Start } from "./screens/Start";
 import { ScanParcha } from "./screens/ScanParcha";
-import { CheckMedicines } from "./screens/CheckMedicines";
+import { AddParcha } from "./screens/AddParcha";
 import { DoseCards } from "./screens/DoseCards";
 import { SimpleParcha } from "./screens/SimpleParcha";
 
@@ -117,7 +117,9 @@ function Inside() {
           <Route path="/start" element={<Start />} />
           <Route path="/scan" element={<ScanParcha />} />
           <Route path="/rx" element={<ScanParcha />} />
-          <Route path="/check" element={<CheckMedicines />} />
+          <Route path="/add" element={<AddParcha />} />
+          {/* The old address for the bill path: the same flow now. */}
+          <Route path="/check" element={<AddParcha />} />
           <Route path="/simple/:key" element={<SimpleParcha />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

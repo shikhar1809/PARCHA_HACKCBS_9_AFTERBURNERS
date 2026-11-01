@@ -53,25 +53,25 @@ export function Start() {
 
       <button
         type="button"
-        onClick={() => go("/scan")}
+        onClick={() => go("/add?printed=1")}
         className="flex min-h-28 w-full items-center gap-4 rounded-3xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-5 text-left shadow-[0_5px_0_#232326] active:translate-y-0.5"
       >
         <Camera className="size-12 shrink-0" strokeWidth={2} aria-hidden />
         <span>
           <span className="block text-2xl leading-tight font-bold">{t("Yes", "हाँ", "Haan")}</span>
-          <span className="block text-lg">{t("Photograph it, the phone reads it", "फ़ोटो लें, फ़ोन पढ़ेगा", "Photo lein, phone padhega")}</span>
+          <span className="block text-lg">{t("Photograph it with the bill", "बिल के साथ फ़ोटो लें", "Bill ke saath photo lein")}</span>
         </span>
       </button>
 
       <button
         type="button"
-        onClick={() => go("/check")}
+        onClick={() => go("/add")}
         className="flex min-h-28 w-full items-center gap-4 rounded-3xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-5 text-left shadow-[0_5px_0_#232326] active:translate-y-0.5"
       >
         <FileX2 className="size-12 shrink-0" strokeWidth={2} aria-hidden />
         <span>
           <span className="block text-2xl leading-tight font-bold">{t("No", "नहीं", "Nahi")}</span>
-          <span className="block text-lg">{t("Check my medicines from the bill", "बिल से अपनी दवाइयाँ जाँचें", "Bill se apni dawaiyan jaanchein")}</span>
+          <span className="block text-lg">{t("Handwritten, or no slip: the bill and what was said", "हाथ से लिखा या पर्चा नहीं: बिल और कही बात", "Haath se likha ya parcha nahi: bill aur kahi baat")}</span>
         </span>
       </button>
 

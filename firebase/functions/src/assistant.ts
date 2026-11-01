@@ -48,9 +48,9 @@ type Read = { readable: boolean; medicines: { name: string; strength?: string | 
 
 /* --------------------------------------------------------------- Gemini */
 
-async function gemini<T>(parts: unknown[], schema: unknown, system?: string): Promise<T> {
+async function gemini<T>(parts: unknown[], schema: unknown, system?: string, models: string[] = MODELS): Promise<T> {
   let last: unknown = null;
-  for (const model of MODELS) {
+  for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), MODEL_TIMEOUT_MS);
@@ -62,7 +62,7 @@ async function gemini<T>(parts: unknown[], schema: unknown, system?: string): Pr
           body: JSON.stringify({
             ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
             contents: [{ role: "user", parts }],
-            generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.2 },
+            generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: system ? 0.2 : 0 },
           }),
         });
         if (res.status === 503 || res.status === 429) {
@@ -306,4 +306,106 @@ export const askParcha = onCall({ secrets: [GEMINI_API_KEY, MEKO_API_KEY, MEKO_S
   await remember(await conversationPromise, ask, reply, readLine);
 
   return { kind: "answer", reply, chips: (answer.chips ?? []).slice(0, 3), read: facts, memoryUsed: memory.length };
+});
+
+/* ---------------------------------------------- the doctor's and chemist's words */
+
+/** One medicine as somebody said or wrote it. Every field but the name is "only if said". */
+const MEDICINES_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    transcript: { type: "STRING" },
+    medicines: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          strength: { type: "STRING", nullable: true },
+          morning: { type: "INTEGER", nullable: true },
+          afternoon: { type: "INTEGER", nullable: true },
+          night: { type: "INTEGER", nullable: true },
+          sos: { type: "BOOLEAN" },
+          food: { type: "STRING", enum: ["after_food", "before_food", "empty_stomach"], nullable: true },
+          days: { type: "INTEGER", nullable: true },
+          said: { type: "STRING" },
+        },
+        required: ["name", "sos", "said"],
+      },
+    },
+    notes: { type: "ARRAY", items: { type: "STRING" } },
+  },
+  required: ["transcript", "medicines", "notes"],
+};
+const AUDIO = /^data:audio\/(webm|ogg|mp4|aac|mpeg|wav|x-m4a)(;[a-z0-9=.-]+)*;base64,[A-Za-z0-9+/=]+$/;
+/** Audio is read best by the light model, and it is the one that is rarely busy. */
+const AUDIO_MODELS = ["gemini-3.5-flash-lite", "gemini-3.5-flash"];
+
+/**
+ * What the doctor (or the chemist) said, as words and as medicines.
+ *
+ * The same shape RapidRX's wizard checks point by point: each medicine with
+ * when, food and how long — and each of those only if it was actually said.
+ * A field left out is "not said", and the person sees it as that; nothing is
+ * filled in to make a row look complete. It is a transcript, not a judge:
+ * the family confirms every point before any of it reaches a schedule.
+ */
+export const hearInstructions = onCall({ secrets: [GEMINI_API_KEY], timeoutSeconds: 90, memory: "512MiB" }, async (request) => {
+  const phone = tenDigits(requirePatientPhone(request));
+  await rateLimit(`hear:${phone}`, 40, 3600);
+  const d = (request.data ?? {}) as Record<string, unknown>;
+  const audio = typeof d.audio === "string" ? d.audio : "";
+  if (audio.length > 4_000_000 || !AUDIO.test(audio)) throw new HttpsError("invalid-argument", "The recording could not be used. Record it again.");
+  const who = d.who === "pharmacist" ? "a pharmacist (chemist)" : "a doctor";
+  const known = Array.isArray(d.known) ? (d.known as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 20) : [];
+  const [, mime, data] = audio.match(/^data:(audio\/[a-z0-9-]+)[^,]*;base64,(.*)$/) ?? [];
+  return gemini(
+    [
+      { inline_data: { mime_type: mime, data } },
+      {
+        text: [
+          `This is a recording of ${who} in India telling a patient how to take medicines, in Hindi, English or Hinglish.`,
+          "Transcribe it exactly. Then list each medicine as it was said.",
+          "Fill a field ONLY if it was said in the recording; otherwise leave it null. Never infer a time, a food rule or a duration from what the medicine usually is.",
+          "morning/afternoon/night are how many tablets at that time. 'Sone se pehle' and 'raat' are night. 'Zaroorat ho to' or 'when needed' is sos=true.",
+          "Advice that is not a medicine (walk daily, drink water) goes in notes.",
+          known.length ? `Medicines already found on the bill or prescription, for spelling only (do not add them if not said): ${known.join(", ")}.` : "",
+          "If nothing about medicines can be heard, return an empty medicines list and say so in transcript.",
+        ].filter(Boolean).join(" "),
+      },
+    ],
+    MEDICINES_SCHEMA,
+    undefined,
+    AUDIO_MODELS,
+  );
+});
+
+/**
+ * A handwritten prescription, read — the one photo that is sent away, and
+ * only when the person taps the button that says so. Printed text is read on
+ * the phone instead; handwriting is where the phone's own reader fails.
+ */
+export const readHandwriting = onCall({ secrets: [GEMINI_API_KEY], timeoutSeconds: 90, memory: "512MiB" }, async (request) => {
+  const phone = tenDigits(requirePatientPhone(request));
+  await rateLimit(`hand:${phone}`, 30, 3600);
+  const image = typeof request.data?.image === "string" ? request.data.image : "";
+  if (image.length > MAX_IMAGE_CHARS || !IMAGE.test(image)) throw new HttpsError("invalid-argument", "That photo could not be used. Take it again.");
+  const [, mime, data] = image.match(/^data:(image\/[a-z]+);base64,(.*)$/) ?? [];
+  return gemini(
+    [
+      { inline_data: { mime_type: mime, data } },
+      {
+        text: [
+          "This is a photo of a doctor's prescription in India, possibly handwritten.",
+          "In transcript, write out what you can read. Then list each medicine as written.",
+          "Fill a field ONLY if it is written and clearly legible; otherwise null. Never guess a smudged word; never complete a name from its first letters.",
+          "Doctors write times as 1-0-1 (morning-afternoon-night), OD, BD, TDS, HS, SOS; AC is before food, PC after food; x5d is 5 days.",
+          "If the photo is not a prescription or cannot be read, return an empty medicines list and say why in transcript.",
+        ].join(" "),
+      },
+    ],
+    MEDICINES_SCHEMA,
+    undefined,
+    AUDIO_MODELS,
+  );
 });
