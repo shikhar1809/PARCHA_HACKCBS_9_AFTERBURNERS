@@ -85,12 +85,12 @@ export function sendCode(tenDigitPhone: string): Promise<ConfirmationResult> {
 }
 
 /**
- * The one demo handset the app offers: the family phone shared by Sunita,
- * Ramesh and Kamla (Dadi), which shows every part of the app, the simple
+ * The one demo handset the app offers: the family phone shared by Priya,
+ * Prashant and Prabha (Dadi), which shows every part of the app, the simple
  * screen and medicine reminders included. Its number is filled in on sign-in.
  */
 export const DEMO_PHONES = [
-  { phone: "9811044321", note: { en: "Shared by Sunita, Ramesh and Kamla (Dadi)", hi: "सुनीता, रमेश और कमला (दादी) का साझा फ़ोन", hg: "Sunita, Ramesh aur Kamla (Dadi) ka shared phone" } },
+  { phone: "9811044321", note: { en: "Shared by Priya, Prashant and Prabha (Dadi)", hi: "प्रिया, प्रशांत और प्रभा (दादी) का साझा फ़ोन", hg: "Priya, Prashant aur Prabha (Dadi) ka shared phone" } },
 ];
 
 /** Whether this build offers the one-tap demo handsets. */

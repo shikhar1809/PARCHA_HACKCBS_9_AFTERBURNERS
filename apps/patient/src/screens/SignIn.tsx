@@ -82,7 +82,7 @@ export function SignIn() {
           <Wordmark />
         </h1>
         <p className="mt-5 max-w-72 text-lg leading-snug">
-          {t("Your prescriptions and clinic visits, in one place.", "आपकी पर्चियाँ और डॉक्टर के पास की यात्राएँ, एक जगह।", "Aapki parchiyan aur doctor visits, ek jagah.")}
+          {t("Your Parchas and your medicines, on your own phone.", "आपके पर्चे और आपकी दवाइयाँ, आपके अपने फ़ोन पर।", "Aapke Parche aur aapki dawaiyan, aapke apne phone par.")}
         </p>
       </div>
 
@@ -123,9 +123,9 @@ export function SignIn() {
                 </p>
                 <p className="text-muted-foreground text-sm leading-snug">
                   {t(
-                    "Sample data: the people and visits here are made up. You can ask the real hospitals on the map for a visit, but nobody there sees it: it is a demo.",
-                    "नमूना डेटा: यहाँ के लोग और यात्राएँ बनावटी हैं। नक़्शे के असली अस्पतालों से विज़िट माँग सकते हैं, पर वहाँ कोई उसे नहीं देखता: यह डेमो है।",
-                    "Sample data: yahan ke log aur visits banawati hain. Map ke asli hospitals se visit maang sakte hain, par wahan koi use nahi dekhta: yeh demo hai.",
+                    "Sample data: the people and the Parchas here are made up, and so are the doctors who wrote them.",
+                    "नमूना डेटा: यहाँ के लोग और पर्चे बनावटी हैं, और उन्हें लिखने वाले डॉक्टर भी।",
+                    "Sample data: yahan ke log aur Parche banawati hain, aur unhe likhne wale doctor bhi.",
                   )}
                 </p>
                 {DEMO_PHONES.map((d) => (
