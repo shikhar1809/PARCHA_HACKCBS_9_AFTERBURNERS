@@ -35,6 +35,7 @@ export * from "./records";
 export * from "./comms";
 export { vaultClear, vaultDelete, vaultGet, vaultKeys, vaultPut, vaultStats } from "./vault";
 export { readRx, rxTokenFrom, type RxRead } from "./rx";
+export * from "./backup";
 export {
   callQueued,
   flushOutbox,
