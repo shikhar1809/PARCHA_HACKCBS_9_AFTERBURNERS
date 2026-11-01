@@ -210,3 +210,41 @@ export function mgPerDay(item: Pick<PrescriptionItem, "strength" | "form" | "fre
   if (each === null || doses === null || doses === 0) return null;
   return each * doses;
 }
+
+/** What a medicine comes to in a day once every line carrying it is added up. */
+export type DailyDose = {
+  /** Milligrams a day, or null when not one line of it could be read. */
+  mgPerDay: number | null;
+  /** How many lines carry this medicine. */
+  lines: number;
+  /** How many of those lines the arithmetic could read. */
+  checked: number;
+};
+
+/**
+ * Milligrams a day of each medicine, adding every line that carries it.
+ *
+ * The same medicine can be on a prescription twice — a regular course and an
+ * as-needed line, the same thing under two brands, or simply by mistake — and
+ * what reaches the patient is the sum. So the dose rules read this and never a
+ * single line: otherwise two lines each just under the most a day would both
+ * pass while the patient takes twice it.
+ *
+ * A line that cannot be turned into milligrams (a combination, a cream, SOS)
+ * adds nothing and is counted in `lines` but not in `checked`, so a flag can
+ * say what it was able to add. Where no line could be read the total is null
+ * and no dose rule runs, exactly as for a single unreadable line.
+ */
+export function dailyByDrug(items: Pick<PrescriptionItem, "drugId" | "strength" | "form" | "frequency">[]): Map<string, DailyDose> {
+  const out = new Map<string, DailyDose>();
+  for (const item of items) {
+    const each = mgPerDay(item);
+    const already = out.get(item.drugId) ?? { mgPerDay: null, lines: 0, checked: 0 };
+    out.set(item.drugId, {
+      mgPerDay: each === null ? already.mgPerDay : (already.mgPerDay ?? 0) + each,
+      lines: already.lines + 1,
+      checked: already.checked + (each === null ? 0 : 1),
+    });
+  }
+  return out;
+}
