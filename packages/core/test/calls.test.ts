@@ -5,7 +5,7 @@ import { buildScript, callsDue, inQuietHours, replyScript, spokenTimeHindi } fro
 import type { Reminder } from "../src/schedule.js";
 
 const reminder = (over: Partial<Reminder> = {}): Reminder => ({
-  id: "r1", ownerPhone: "9811044321", personName: "Ramesh Chand", kind: "medicine", title: "Paracetamol", detail: null,
+  id: "r1", ownerPhone: "9811044321", personName: "Prashant", kind: "medicine", title: "Paracetamol", detail: null,
   times: ["08:00", "14:00", "21:00"], days: [], startDate: "2026-10-20", endDate: null, enabled: true, source: null, ...over,
 });
 const at = (hhmm: string) => new Date(`2026-10-22T${hhmm}:00`);
@@ -55,12 +55,12 @@ test("only medicines are phoned about, not appointments", () => {
 });
 
 test("scripts say the time, the medicines and both key presses", () => {
-  const en = buildScript("en", "14:00", [{ title: "Paracetamol", personName: "Ramesh Chand" }, { title: "Metformin", personName: "Ramesh Chand" }]);
+  const en = buildScript("en", "14:00", [{ title: "Paracetamol", personName: "Prashant" }, { title: "Metformin", personName: "Prashant" }]);
   assert.match(en, /2 pm/);
   assert.match(en, /Paracetamol and Metformin/);
   assert.match(en, /press 1/);
   assert.match(en, /press 2/);
-  const hi = buildScript("hi", "21:00", [{ title: "Paracetamol", personName: "Ramesh Chand" }]);
+  const hi = buildScript("hi", "21:00", [{ title: "Paracetamol", personName: "Prashant" }]);
   assert.match(hi, /रात के 9 बजे/);
   assert.match(hi, /Paracetamol/);
   assert.match(hi, /एक दबाइए/);
@@ -68,9 +68,9 @@ test("scripts say the time, the medicines and both key presses", () => {
 
 test("a second attempt says so, and two people are told apart", () => {
   assert.match(buildScript("en", "14:00", [{ title: "A", personName: "X" }], 2), /called a little while ago/);
-  const two = buildScript("en", "14:00", [{ title: "A", personName: "Ramesh Chand" }, { title: "B", personName: "Kamla Devi" }]);
-  assert.match(two, /Ramesh: A/);
-  assert.match(two, /Kamla: B/);
+  const two = buildScript("en", "14:00", [{ title: "A", personName: "Prashant" }, { title: "B", personName: "Prabha Devi" }]);
+  assert.match(two, /Prashant: A/);
+  assert.match(two, /Prabha: B/);
 });
 
 test("replies", () => {

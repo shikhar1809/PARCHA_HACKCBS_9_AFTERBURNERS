@@ -89,7 +89,7 @@ export function spokenTimeHindi(time: string): string {
 const join = (list: string[], and: string) =>
   list.length <= 1 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} ${and} ${list[list.length - 1]}`;
 
-/** Who takes what: "Ramesh: Paracetamol and Metformin". */
+/** Who takes what: "Prashant: Paracetamol and Metformin". */
 function byPerson(doses: { title: string; personName: string }[]): { person: string; meds: string[] }[] {
   const map = new Map<string, string[]>();
   for (const d of doses) {
