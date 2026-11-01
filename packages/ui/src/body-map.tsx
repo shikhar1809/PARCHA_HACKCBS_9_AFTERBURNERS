@@ -39,9 +39,22 @@ export function BodyMap({
   const face = parts.filter((p) => ["eyes", "ears", "mouth"].includes(p.id));
   const on = (id: string) => chosen.includes(id);
 
+  /**
+   * A shape that is drawn but is not a choice: the back of the head, the arms
+   * behind, the feet. A part belongs to one view, and the other view still has
+   * to draw it — a back without a head or arms is a stack of boxes, and a
+   * figure nobody recognises is a figure nobody points at.
+   */
+  const outline = (shape: React.ReactNode) => (
+    <g fill="#ffffff" stroke="#232326" strokeWidth={3} strokeLinejoin="round" aria-hidden="true">
+      {shape}
+    </g>
+  );
+
   const region = (id: string, shape: React.ReactNode) => {
     const part = parts.find((p) => p.id === id);
-    if (!part) return null;
+    // Not a part of this view: drawn, so the body stays whole, but not tappable.
+    if (!part) return outline(shape);
     const picked = on(id);
     return (
       <g
@@ -121,36 +134,43 @@ export function BodyMap({
           </>
         ) : (
           <>
-            {region("head", <ellipse cx="100" cy="40" rx="30" ry="34" />)}
+            {outline(<ellipse cx="100" cy="40" rx="30" ry="34" />)}
+            {outline(<rect x="86" y="72" width="28" height="18" rx="7" />)}
             {region(
               "shoulder",
               <>
-                <rect x="40" y="86" width="46" height="26" rx="13" />
-                <rect x="114" y="86" width="46" height="26" rx="13" />
+                <rect x="38" y="88" width="48" height="26" rx="13" />
+                <rect x="114" y="88" width="48" height="26" rx="13" />
               </>,
             )}
-            {region("upper_back", <rect x="60" y="112" width="80" height="68" rx="16" />)}
-            {region("lower_back", <rect x="64" y="180" width="72" height="56" rx="16" />)}
-            {region("buttock", <rect x="62" y="236" width="76" height="44" rx="18" />)}
-            {region(
-              "arm",
+            {outline(
               <>
                 <rect x="30" y="100" width="26" height="100" rx="13" />
                 <rect x="144" y="100" width="26" height="100" rx="13" />
+                <ellipse cx="43" cy="215" rx="16" ry="19" />
+                <ellipse cx="157" cy="215" rx="16" ry="19" />
+              </>,
+            )}
+            {region("upper_back", <rect x="60" y="114" width="80" height="60" rx="16" />)}
+            {region("lower_back", <rect x="64" y="176" width="72" height="48" rx="16" />)}
+            {region("buttock", <rect x="62" y="224" width="76" height="40" rx="18" />)}
+            {outline(
+              <>
+                <rect x="66" y="264" width="30" height="62" rx="13" />
+                <rect x="104" y="264" width="30" height="62" rx="13" />
               </>,
             )}
             {region(
               "calf",
               <>
-                <rect x="66" y="280" width="30" height="80" rx="14" />
-                <rect x="104" y="280" width="30" height="80" rx="14" />
+                <rect x="66" y="326" width="30" height="62" rx="14" />
+                <rect x="104" y="326" width="30" height="62" rx="14" />
               </>,
             )}
-            {region(
-              "foot",
+            {outline(
               <>
-                <rect x="66" y="362" width="30" height="44" rx="12" />
-                <rect x="104" y="362" width="30" height="44" rx="12" />
+                <ellipse cx="81" cy="398" rx="16" ry="13" />
+                <ellipse cx="119" cy="398" rx="16" ry="13" />
               </>,
             )}
           </>
