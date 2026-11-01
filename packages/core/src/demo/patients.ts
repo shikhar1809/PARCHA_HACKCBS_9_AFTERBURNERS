@@ -5,12 +5,12 @@
  * true on purpose, and the schema test in scripts/verify-sql.ts asserts them:
  *
  *   - 9811044321 is one handset shared by three people in the same household
- *     (Sunita, her husband Ramesh, his mother Kamla). That is the case the
+ *     (Priya, her husband Prashant, his mother Prabha). That is the case the
  *     /intake disambiguation step exists for, and it is the single most
  *     common reason paper systems lose track of a patient.
  *   - 9700881122 is a second shared number, two brothers, so the behaviour is
  *     not a one-off.
- *   - Sunita Devi has a recorded penicillin allergy. Kamla Devi takes
+ *   - Priya has a recorded penicillin allergy. Prabha Devi takes
  *     warfarin. Babulal Meena takes theophylline. Each sets up one of the
  *     drug<->drug or drug<->allergy rules.
  *   - Savitri Bai is the drug<->vitals case. She is mid-consultation right
@@ -117,8 +117,8 @@ export const patients: PatientSeed[] = [
   // The shared-handset household. One phone number, three patients.
   // =========================================================================
   {
-    key: "sunita-devi",
-    name: "Sunita Devi",
+    key: "priya",
+    name: "Priya",
     sex: "female",
     age: 42,
     phone: "9811044321",
@@ -221,8 +221,8 @@ export const patients: PatientSeed[] = [
     ],
   },
   {
-    key: "ramesh-chand",
-    name: "Ramesh Chand",
+    key: "prashant",
+    name: "Prashant",
     sex: "male",
     age: 48,
     phone: "9811044321",
@@ -231,7 +231,7 @@ export const patients: PatientSeed[] = [
     state: "Delhi",
     bloodGroup: "O+",
     language: "hi",
-    notes: "Same handset as Sunita Devi (wife) and Kamla Devi (mother).",
+    notes: "Same handset as Priya (wife) and Prabha Devi (mother).",
     baseline: {
       heightCm: 168,
       weightKg: 78,
@@ -326,8 +326,8 @@ export const patients: PatientSeed[] = [
     ],
   },
   {
-    key: "kamla-devi",
-    name: "Kamla Devi",
+    key: "prabha-devi",
+    name: "Prabha Devi",
     sex: "female",
     age: 71,
     phone: "9811044321",
@@ -337,7 +337,7 @@ export const patients: PatientSeed[] = [
     bloodGroup: "B+",
     language: "hi",
     notes:
-      "On long-term warfarin for atrial fibrillation. Cannot read; her son Ramesh handles her medicines.",
+      "On long-term warfarin for atrial fibrillation. Cannot read; her son Prashant handles her medicines.",
     baseline: {
       heightCm: 148,
       weightKg: 51,
@@ -348,10 +348,10 @@ export const patients: PatientSeed[] = [
     },
     caretakers: [
       {
-        name: "Ramesh Chand",
+        name: "Prashant",
         phone: "9811044321",
         relationship: "Son",
-        patientKey: "ramesh-chand",
+        patientKey: "prashant",
       },
     ],
     visits: [
