@@ -21,7 +21,8 @@
  * The phone's own camera app works too: the code is a link to /rx, which
  * opens here with the prescription already read.
  */
-import { errorMessage, readRx, vaultPut, type RxRead } from "@parcha/client";
+import { errorMessage, readRx, vaultPut, type RxRead, markTouched
+} from "@parcha/client";
 import { normaliseFrequency, remindersFromPrescription, rxHindi, rxName, toDateString, type Reminder, type RxPayload, type Timing } from "@parcha/core";
 import { Screen, cn } from "@parcha/ui";
 import { BadgeCheck, Camera, Check, FlaskConical, ImagePlus, Loader2, ShieldAlert } from "lucide-react";
@@ -136,6 +137,8 @@ export function ScanParcha() {
       );
       // The slip stays on the phone, encrypted, for "My Parchas".
       await vaultPut(`parcha:${rx.c}`, { payload: rx, token: read.token, person: who, photo, savedAt: new Date().toISOString() });
+      // The phone's own copy is now newer than any backup it holds.
+      await markTouched();
       setStep("schedule");
     } catch (e) {
       setError(errorMessage(e));
@@ -149,10 +152,10 @@ export function ScanParcha() {
       <Header
         back="/"
         title={t("Add your Parcha", "अपना पर्चा जोड़ें", "Apna Parcha jodein")}
-        subtitle={step === "done" ? undefined : t(`Step ${at + 1} of ${steps.length}`, `चरण ${at + 1} / ${steps.length}`, `Step ${at + 1} / ${steps.length}`)}
+        subtitle={step === "done" || step === "schedule" ? undefined : t(`Step ${at + 1} of ${steps.length}`, `चरण ${at + 1} / ${steps.length}`, `Step ${at + 1} / ${steps.length}`)}
       />
       <Screen className="space-y-5 px-4 pb-10">
-        {step !== "done" ? (
+        {step !== "done" && step !== "schedule" ? (
           <div className="flex gap-1.5" aria-hidden>
             {steps.map((s, i) => (
               <span key={s} className={cn("h-2 flex-1 rounded-full border-2 border-[#232326]", i <= at ? "bg-[var(--brand)]" : "bg-white")} />

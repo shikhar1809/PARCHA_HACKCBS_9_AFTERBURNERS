@@ -3,7 +3,6 @@ import {
   markDose,
   useDoseLog,
   useReminders,
-  useVisitsForPhone,
 } from "@parcha/client";
 import {
   addCalendarDays,
@@ -13,19 +12,18 @@ import {
   toDateString,
   type Dose,
   type Reminder,
-  type Visit,
 } from "@parcha/core";
 import { Screen } from "@parcha/ui";
-import { Bell, BellOff, CalendarCheck, Check, ListChecks, Loader2, PhoneCall, Pill, Plus } from "lucide-react";
+import { Bell, BellOff, Check, ListChecks, Loader2, PhoneCall, Pill, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useHandset } from "../auth";
 import { Avatar, CalendarArt, PillsArt } from "../components/art";
 import { CallReminders } from "../components/calls";
+import { askForCallScreen, callScreenAvailable, callScreenReach, ringForDose } from "../components/callScreen";
 import { usePeople } from "../components/people";
 import { EditReminder, ManageReminders, kindIcon } from "../components/reminders";
-import { useSavedParcha } from "../components/parchas";
 import { Sheet } from "../components/records";
 import { Header } from "../kit";
 import { alertsOn, setAlerts, useNow } from "../components/alerts";
@@ -78,45 +76,9 @@ function Ring({ done, total }: { done: number; total: number }) {
 }
 
 /**
- * A visit that finished without its Parcha reaching this phone.
- *
- * The clinic's copy is not read here, so the medicines are not known: what is
- * known is that somebody was seen and that nothing has been added from the
- * slip. One tap goes to the scanner, where the QR on the paper brings the
- * whole prescription over at once.
- */
-function AddParcha({ visit }: { visit: Visit }) {
-  const t = useT();
-  const saved = useSavedParcha(visit.visitCode);
-  if (saved.loading || saved.parcha) return null;
-  const first = visit.patientName.split(" ")[0];
-  return (
-    <div className="pop rounded-2xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-3 shadow-[0_3px_0_#232326]">
-      <div className="flex items-center gap-3">
-        <Avatar name={visit.patientName} sex={visit.patientSex} age={visit.patientAgeYears} size={40} />
-        <p className="min-w-0 flex-1 text-base leading-snug font-bold">
-          {t(
-            `${first} was seen by the doctor. Add the Parcha to get the medicine times.`,
-            `${first} को डॉक्टर ने देख लिया। दवा का समय पाने के लिए पर्चा जोड़ें।`,
-            `${first} ko doctor ne dekh liya. Dawai ka time paane ke liye Parcha jodein.`,
-          )}
-        </p>
-      </div>
-      <Link
-        to="/scan"
-        className="mt-2.5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-[3px] border-[#232326] bg-[var(--brand)] text-base font-bold shadow-[0_3px_0_#232326]"
-      >
-        <Plus className="size-5" aria-hidden />
-        {t("Add the Parcha", "पर्चा जोड़ें", "Parcha jodein")}
-      </Link>
-    </div>
-  );
-}
-
-/**
- * The day, hour by hour: medicines to take (tick them as you go), visits, and
- * check-ups. A strip of days along the top, a ring for how the day is going,
- * and every reminder managed from here.
+ * The day, hour by hour: medicines to take (tick them as you go) and check-ups.
+ * A strip of days along the top, a ring for how the day is going, and every
+ * reminder managed from here.
  */
 export function Schedule() {
   const t = useT();
@@ -134,6 +96,7 @@ export function Schedule() {
   const person = active ?? picked;
   const [sheet, setSheet] = useState<null | { kind: "new" } | { kind: "edit"; r: Reminder } | { kind: "manage" } | { kind: "calls" }>(null);
   const [alerts, setAlertsState] = useState(alertsOn());
+  const [callNote, setCallNote] = useState<string | null>(null);
   const [alertNote, setAlertNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -145,33 +108,18 @@ export function Schedule() {
 
   const reminders = useReminders(phone);
   const log = useDoseLog(phone, date);
-  const visits = useVisitsForPhone(phone);
 
-  const people = useMemo(
-    () => [...new Set([...visits.data.map((v) => v.patientName), ...reminders.data.map((r) => r.personName)])],
-    [visits.data, reminders.data],
-  );
+  const people = useMemo(() => [...new Set(reminders.data.map((r) => r.personName))], [reminders.data]);
   const mine = person ? reminders.data.filter((r) => r.personName === person) : reminders.data;
   const doses = dosesOn(mine, date);
   const taken = log.data?.taken ?? {};
   const isTaken = (d: Dose) => d.key in taken;
 
-  // Booked visits show on their day, alongside the medicines.
-  const appointments = visits.data.filter(
-    (v) => v.stage === "scheduled" && v.scheduledFor && toDateString(new Date(v.scheduledFor)) === date && (!person || v.patientName === person),
-  );
-
   const doneCount = doses.filter(isTaken).length;
   const upNext = date === today ? doses.find((d) => !isTaken(d) && minutesSince(d.time, now) < 30) : undefined;
 
-  // Finished visits whose Parcha may not be on this phone yet.
-  const candidates = visits.data
-    .filter((v) => v.stage === "prescribed" && (v.prescribedAt ? now.getTime() - new Date(v.prescribedAt).getTime() < 14 * 86400000 : true))
-    .filter((v) => !person || v.patientName === person)
-    .slice(0, 2);
-
   const strip = Array.from({ length: 7 }, (_, i) => addCalendarDays(today, i - 1));
-  const hasItems = (d: string) => dosesOn(reminders.data, d).length > 0 || visits.data.some((v) => v.stage === "scheduled" && v.scheduledFor && toDateString(new Date(v.scheduledFor)) === d);
+  const hasItems = (d: string) => dosesOn(reminders.data, d).length > 0;
 
   async function toggle(d: Dose) {
     if (pending.has(d.key)) return;
@@ -187,6 +135,30 @@ export function Schedule() {
         n.delete(d.key);
         return n;
       });
+    }
+  }
+
+  /**
+   * Rings this phone for one dose, now: the whole screen, like a call. It is
+   * this phone's own alarm, not a telephone call, and the note says so the
+   * first time Android will only allow it while Parcha is open.
+   */
+  async function ring(d: Dose) {
+    setCallNote(null);
+    const reach = await callScreenReach();
+    const { rang } = await ringForDose(d, date, lang);
+    if (!rang) {
+      setCallNote(t("This phone cannot show a call screen.", "यह फ़ोन कॉल स्क्रीन नहीं दिखा सकता।", "Yeh phone call screen nahi dikha sakta."));
+      return;
+    }
+    if (reach === "open") {
+      setCallNote(
+        t(
+          "Android allows this only while Parcha is open. Allow full-screen reminders to let it ring on a locked phone.",
+          "Android अभी यह सिर्फ़ पर्चा खुला रहने पर दिखाने देता है। बंद फ़ोन पर बजाने के लिए फ़ुल-स्क्रीन रिमाइंडर की अनुमति दें।",
+          "Android abhi yeh sirf Parcha khula rehne par dikhane deta hai. Band phone par bajane ke liye full-screen reminder ki ijazat dein.",
+        ),
+      );
     }
   }
 
@@ -272,6 +244,17 @@ export function Schedule() {
       ) : null}
 
       <Screen className="space-y-3 px-4 pb-4">
+        {callNote ? (
+          <button
+            type="button"
+            onClick={() => void askForCallScreen()}
+            role="status"
+            className="w-full rounded-xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 text-left text-base font-bold"
+          >
+            {callNote}
+          </button>
+        ) : null}
+
         {alertNote ? (
           <p role="status" className="rounded-xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 text-base font-bold">
             {alertNote}
@@ -283,10 +266,6 @@ export function Schedule() {
               : t("Alerts appear on this phone while Parcha is open.", "पर्चा खुला रहने पर इस फ़ोन पर सूचना आएगी।", "Parcha khula rehne par is phone par alerts aayenge.")}
           </p>
         ) : null}
-
-        {candidates.map((v) => (
-          <AddParcha key={v.id} visit={v} />
-        ))}
 
         {doses.length > 0 ? (
           <div className="flex items-center gap-3 rounded-2xl border-[3px] border-[#232326] bg-card p-3 shadow-[0_3px_0_#232326]">
@@ -314,13 +293,13 @@ export function Schedule() {
           </p>
         ) : null}
 
-        {reminders.loading || visits.loading ? (
+        {reminders.loading ? (
           <div className="space-y-2.5" role="status" aria-label={t("Loading", "खुल रहा है", "Khul raha hai")}>
             {[0, 1, 2].map((i) => (
               <div key={i} className="skeleton h-16 rounded-2xl border-[3px] border-[#232326]" />
             ))}
           </div>
-        ) : doses.length === 0 && appointments.length === 0 ? (
+        ) : doses.length === 0 ? (
           <div className="pop flex flex-col items-center px-2 py-4 text-center">
             {reminders.data.length === 0 ? <PillsArt size={104} /> : <CalendarArt size={104} />}
             <p className="text-lg font-bold">
@@ -334,25 +313,6 @@ export function Schedule() {
           </div>
         ) : (
           <div key={date + (person ?? "")} className="stagger space-y-3">
-            {appointments.map((v) => (
-              <Link
-                key={v.id}
-                to={`/visit/${v.id}`}
-                className="flex items-center gap-3 rounded-2xl border-[3px] border-[#232326] bg-[var(--ready-soft)] p-3 shadow-[0_3px_0_#232326]"
-              >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#232326] bg-white">
-                  <CalendarCheck className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base leading-tight font-bold">{t(`Visit for ${v.patientName.split(" ")[0]}`, `${v.patientName.split(" ")[0]} की विज़िट`, `${v.patientName.split(" ")[0]} ki visit`)}</p>
-                  <p className="truncate text-base">
-                    {clockIn(lang, new Date(v.scheduledFor!).toTimeString().slice(0, 5))}
-                    {v.attempts?.at(-1)?.hospitalName ? ` · ${v.attempts.at(-1)!.hospitalName}` : ""}
-                  </p>
-                </div>
-              </Link>
-            ))}
-
             {groups.map(({ part, items }) => (
               <section key={part}>
                 <p className="mb-1.5 text-base font-bold">{t(...PART_WORDS[part])}</p>
@@ -391,6 +351,17 @@ export function Schedule() {
                               </span>
                             </p>
                           </div>
+                          {/* Ring this phone for this medicine, now. */}
+                          {callScreenAvailable && !done ? (
+                            <button
+                              type="button"
+                              onClick={() => void ring(d)}
+                              aria-label={t(`Ring me for ${d.reminder.title}`, `${d.reminder.title} के लिए कॉल करें`, `${d.reminder.title} ke liye call karein`)}
+                              className="flex size-11 shrink-0 items-center justify-center rounded-xl border-[3px] border-[#232326] bg-white"
+                            >
+                              <PhoneCall className="size-5" aria-hidden />
+                            </button>
+                          ) : null}
                           <div className="shrink-0 text-right">
                             <p className="text-base leading-tight font-bold">{clockIn(lang, d.time)}</p>
                             {late ? <p className="text-sm font-bold">{t("Not yet", "अभी नहीं ली", "Abhi nahi li")}</p> : due ? <p className="text-sm font-bold">{t("Now", "अभी", "Abhi")}</p> : null}

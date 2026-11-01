@@ -1,28 +1,31 @@
 /**
  * Every Parcha a person has, newest first, and the way to add a new one.
  *
- * Everything in this list is on this phone. A consultation at a Parcha
- * hospital shows as the visit it was — who saw them, where, when — because
- * that much the phone knows from its own appointment; what the doctor
- * prescribed is not here until the family adds it from the paper, and the row
- * says so and offers to. The rest are slips scanned from their QR (signature
- * checked here), photographs of slips that would not scan, and medicines
- * checked from a pharmacy bill when there was no Parcha at all.
+ * Everything in this list is on this phone, and nothing is fetched: slips
+ * scanned from their QR (signature checked here), photographs of slips that
+ * would not scan, and medicines checked from a pharmacy bill when there was no
+ * Parcha at all. The clinic's own copy stays at the clinic.
  */
 import { vaultGet, vaultKeys } from "@parcha/client";
-import { rxName, type RxPayload, type Visit } from "@parcha/core";
-import { BadgeCheck, ChevronRight, FilePlus2, Hospital, Image as ImageIcon, ReceiptText } from "lucide-react";
+import { rxName, type RxPayload } from "@parcha/core";
+import { BadgeCheck, FilePlus2, Image as ImageIcon, ReceiptText } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { dateIn, useLang, useT } from "../i18n";
 
-type Scanned = { payload: RxPayload; person: string; savedAt: string; photo?: string | null };
-type Checked = { person: string; medicines: { name: string; frequency: string }[]; savedAt: string };
+export type Scanned = {
+  payload: RxPayload;
+  person: string;
+  savedAt: string;
+  photo?: string | null;
+  /** The signed token the QR carried, where the slip came from a real scan. */
+  token?: string | null;
+};
+export type Checked = { person: string; medicines: { name: string; frequency: string }[]; savedAt: string };
 /** A Parcha whose code would not read, kept as the picture it is. */
-type Snap = { person: string; photo: string; savedAt: string };
-type Row =
-  | { kind: "hospital"; at: string; visit: Visit }
+export type Snap = { person: string; photo: string; savedAt: string };
+export type Row =
   | { kind: "scanned"; at: string; slip: Scanned }
   | { kind: "photo"; at: string; snap: Snap }
   | { kind: "checked"; at: string; list: Checked };
@@ -50,7 +53,7 @@ export function useSavedParcha(visitCode: string | null): { loading: boolean; pa
 }
 
 /** What is kept on this phone for one person. */
-function useKept(person: string) {
+export function useKeptParchas(person: string) {
   const [kept, setKept] = useState<Row[]>([]);
   useEffect(() => {
     let live = true;
@@ -78,15 +81,11 @@ function useKept(person: string) {
   return kept;
 }
 
-export function ParchaList({ person, visits }: { person: string; visits: Visit[] }) {
+export function ParchaList({ person }: { person: string }) {
   const t = useT();
   const lang = useLang();
   const navigate = useNavigate();
-  const kept = useKept(person);
-  const rows: Row[] = [
-    ...visits.filter((v) => v.stage === "prescribed").map((v) => ({ kind: "hospital" as const, at: v.prescribedAt ?? v.registeredAt ?? "", visit: v })),
-    ...kept,
-  ].sort((a, b) => b.at.localeCompare(a.at));
+  const rows = [...useKeptParchas(person)].sort((a, b) => b.at.localeCompare(a.at));
 
   return (
     <div className="space-y-3">
@@ -110,23 +109,6 @@ export function ParchaList({ person, visits }: { person: string; visits: Visit[]
         <ul className="space-y-2.5">
           {rows.map((r, i) => {
             const when = r.at ? dateIn(lang, r.at) : "";
-            if (r.kind === "hospital") {
-              const v = r.visit;
-              return (
-                <li key={`h${v.id}`}>
-                  <Link to={`/visit/${v.id}`} className="hover-orange flex items-center gap-3 rounded-2xl border-[3px] border-[#232326] bg-card p-3.5">
-                    <Hospital className="size-8 shrink-0" strokeWidth={2.2} aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-lg leading-tight font-bold">
-                        {t("Seen by the doctor", "डॉक्टर ने देखा", "Doctor ne dekha")}
-                      </span>
-                      <span className="block text-base">{[v.assignedDoctorName, when].filter(Boolean).join(" · ")}</span>
-                    </span>
-                    <ChevronRight className="size-6 shrink-0" aria-hidden />
-                  </Link>
-                </li>
-              );
-            }
             if (r.kind === "photo") {
               return (
                 <li key={`p${i}`} className="space-y-2 rounded-2xl border-[3px] border-[#232326] bg-card p-3.5">
