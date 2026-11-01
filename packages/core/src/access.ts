@@ -131,7 +131,7 @@ export function spokenDose(item: PrescriptionItem, lang: SpeechLang = "en"): str
     : [`${name}: ${joined}${often}`, how, `for ${NUM.en[days] ?? days} day${days === 1 ? "" : "s"}`].filter(Boolean).join(", ") + ".";
 }
 
-/** What a reminder says aloud: "Kamla, it is time for Calcium 500, after food." */
+/** What a reminder says aloud: "Prabha, it is time for Calcium 500, after food." */
 export function spokenReminder(personName: string, medicines: string[], lang: SpeechLang = "en"): string {
   const first = personName.split(" ")[0];
   const list = medicines.join(lang === "hi" ? ", " : ", ");

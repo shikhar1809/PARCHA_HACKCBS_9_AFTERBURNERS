@@ -21,7 +21,7 @@ test("a syrup is spoons, two tablets is plural", () => {
 });
 
 test("a reminder names the person", () => {
-  assert.equal(spokenReminder("Kamla Devi", ["Calcium 500"]), "Kamla, it is time for your medicine: Calcium 500.");
+  assert.equal(spokenReminder("Prabha Devi", ["Calcium 500"]), "Prabha, it is time for your medicine: Calcium 500.");
 });
 
 test("access settings and needs are cleaned", () => {
