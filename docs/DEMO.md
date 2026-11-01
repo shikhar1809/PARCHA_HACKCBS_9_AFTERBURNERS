@@ -92,7 +92,7 @@ The patients' map also shows eleven **real hospitals around the college** (Jacks
 
 | Phone | Who | What to try |
 | --- | --- | --- |
-| `9811044321` | Sunita, Ramesh and Kamla (one family phone) | **The one the app offers, filled in.** Three people on one phone; a prescription ready; a day of medicines for each; Kamla ("Dadi") gets the simple screen. |
+| `9811044321` | Priya, Prashant and Prabha (one family phone) | **The one the app offers, filled in.** Three people on one phone; a prescription ready; a day of medicines for each; Prabha ("Dadi") gets the simple screen. |
 | `9700881122` | Ganesh and Suresh | A request waiting at Rohini City Hospital. |
 | `9988112233` | Pooja Sharma | A confirmed booking with a "please bring" checklist half ticked. |
 | `9873312098` | Mohammed Irfan | A request waiting on a doctor. |
@@ -112,15 +112,15 @@ The patients' map also shows eleven **real hospitals around the college** (Jacks
 - **Seats:** as `staff@parcha.test`, open Manage (PIN `1234`), add a seat "Triage nurse" that can only take vitals, add a person in it, and sign in as them: they can take vitals but not register anyone. Try switching Manage off for the admin seat: it is refused, so a clinic can never lock itself out.
 - **Who is using the phone:** in the patient app, sign in with `9811044321`; Parcha asks who is using it, shows only that person, and the Switch button at the top changes person or signs out.
 
-- **Book a visit:** in the patient app (the family phone is filled in), choose Ramesh, tap **New visit**, describe the problem, and the map suggests one hospital and says why. Tap another pin to see its size, rating, fee and distance; ask a real hospital near the college too, and watch the 15-minute ring.
+- **Book a visit:** in the patient app (the family phone is filled in), choose Prashant, tap **New visit**, describe the problem, and the map suggests one hospital and says why. Tap another pin to see its size, rating, fee and distance; ask a real hospital near the college too, and watch the 15-minute ring.
 - **Feedback:** open a visit whose prescription is ready: "How was your visit?" takes stars and a few tapped words.
-- **@ in Messages:** in the clinic, open Messages (Ctrl+M), type `@rx` or `@` and a token number, and pick "Active prescription #6 · Ramesh Chand". Hover the chip for a quick view; click it to open the visit.
+- **@ in Messages:** in the clinic, open Messages (Ctrl+M), type `@rx` or `@` and a token number, and pick "Active prescription #6 · Prashant". Hover the chip for a quick view; click it to open the visit.
 - **The promise broken:** sign in as Sunil Joshi and leave the visit open. When the ring reaches zero the request moves on to the next hospital by itself.
 - **The hospital's side:** sign in as `noida.doctor@parcha.test` (Dr. Verma's Clinic), open Sunil's request, set what to bring, or pass it on.
 - **Bring list:** sign in as Pooja, tick the pictures, then watch the desk's count change.
 - **Safety check:** as a doctor, open a waiting patient, start the consultation, add Prednisolone and Ibuprofen. A high-severity flag appears; the Sign button stays off until you tick "I have read this".
 - **Reminders and calls:** sign in as `9811044321`, open Schedule, tap the phone icon, switch calls on (agree), add a medicine reminder for this minute, then run `node scripts/dispatch-calls.mjs`. The call shows as ringing with demo buttons for pressing 1 or 2.
-- **A shared phone:** sign in as `9811044321`, then Me, and tap Kamla (or Ramesh) to design their face, set an age and nickname, switch on Needs help with the phone, and add a helper and a PIN. Then Home, tap the faces at the top, and choose Kamla: the app becomes the simple screen. Leave it with the PIN.
+- **A shared phone:** sign in as `9811044321`, then Me, and tap Prabha (or Prashant) to design their face, set an age and nickname, switch on Needs help with the phone, and add a helper and a PIN. Then Home, tap the faces at the top, and choose Prabha: the app becomes the simple screen. Leave it with the PIN.
 - **Their own phone for calls:** in that editor, enter a number under Reminder calls on their own phone; the demo line shows the code.
 - **Offline:** Me, My data, then Developer: pretend there is no connection. Tick a dose and add a reminder (a banner counts the waiting changes), reload the page, then switch back online and watch them send.
 - **Alerts:** Schedule, bell on. In Chrome, allow notifications: a reminder appears as a system notification with Taken and Later buttons. (This needs a normal browser; the in-app preview pane has no service workers.)

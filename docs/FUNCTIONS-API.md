@@ -75,7 +75,7 @@ Optional counters after the doctor, for clinics with a seat that has the ability
 
 | Function | Caller | What it does |
 | --- | --- | --- |
-| `dispensePrescription` | Dispense ability, open session | For a signed prescription: which medicines were given and any same-formula brand given instead. Writes `visits/{id}/dispensing`, sets `dispensedAt` and `dispensedBy` on the visit, and logs it in a sentence ("gave Ramesh Chand 3 of 4 medicines (Paracetamol given as Dolo 650). Not given: Glimepiride.") |
+| `dispensePrescription` | Dispense ability, open session | For a signed prescription: which medicines were given and any same-formula brand given instead. Writes `visits/{id}/dispensing`, sets `dispensedAt` and `dispensedBy` on the visit, and logs it in a sentence ("gave Prashant 3 of 4 medicines (Paracetamol given as Dolo 650). Not given: Glimepiride.") |
 | `recordBill` | Billing ability, open session | Fee lines, and whether paid (cash, UPI, card or Razorpay, required when paid; for Razorpay, an optional `pay_...` payment id). Writes `visits/{id}/bills`, sets `billTotal`, `paid`, `paidMode` and `paidRef` on the visit, and logs it. |
 
 ## The team
