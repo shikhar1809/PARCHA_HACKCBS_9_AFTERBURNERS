@@ -17,6 +17,9 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID?: string;
   /** "false" points the apps at a real project instead of the emulators. */
   readonly VITE_FIREBASE_USE_EMULATORS?: string;
+  readonly VITE_EMULATOR_AUTH_PORT?: string;
+  readonly VITE_EMULATOR_FIRESTORE_PORT?: string;
+  readonly VITE_EMULATOR_FUNCTIONS_PORT?: string;
 }
 
 interface ImportMeta {

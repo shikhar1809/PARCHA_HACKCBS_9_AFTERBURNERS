@@ -82,11 +82,11 @@ function ensure() {
   functions = getFunctions(app, "asia-south1");
 
   if (usingEmulators) {
-    connectFirestoreEmulator(firestore, EMULATOR_HOST, 8080);
-    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, {
+    connectFirestoreEmulator(firestore, EMULATOR_HOST, Number(import.meta.env.VITE_EMULATOR_FIRESTORE_PORT ?? 8080));
+    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:${import.meta.env.VITE_EMULATOR_AUTH_PORT ?? 9099}`, {
       disableWarnings: true,
     });
-    connectFunctionsEmulator(functions, EMULATOR_HOST, 5001);
+    connectFunctionsEmulator(functions, EMULATOR_HOST, Number(import.meta.env.VITE_EMULATOR_FUNCTIONS_PORT ?? 5001));
   }
 }
 
