@@ -104,7 +104,21 @@ public class CallScreenPlugin extends Plugin {
         | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
     PendingIntent pending = PendingIntent.getActivity(getContext(), NOTIFICATION_ID, screen, flags);
 
+    // With Parcha in front — which is the case whenever somebody taps the
+    // button on a medicine — start the screen outright. A notification is the
+    // wrong tool here: on Android 13 and later the system drops it silently
+    // when notification permission was never granted, so the phone that was
+    // asked to ring simply does nothing. Starting the activity needs no
+    // permission at all and cannot be dropped.
     boolean overLockScreen = fullScreenAllowed();
+    if (getActivity() != null && !getActivity().isFinishing()) {
+      getActivity().startActivity(screen);
+      JSObject now = new JSObject();
+      now.put("overLockScreen", overLockScreen);
+      call.resolve(now);
+      return;
+    }
+
     if (overLockScreen) {
       Notification.Builder builder =
           Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
