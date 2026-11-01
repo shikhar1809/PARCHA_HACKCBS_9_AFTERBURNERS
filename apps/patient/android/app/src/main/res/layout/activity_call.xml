@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The incoming-call screen, drawn natively rather than in the web view.
+
+  Natively, because this has to appear instantly over a lock screen with the
+  app not running at all: booting a browser first would turn a ringing phone
+  into a blank one. So it is plain Android views, in Parcha's own colours, with
+  the two targets big enough for somebody who is half asleep.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFF7F0"
+    android:gravity="center_horizontal"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/call_from"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#6B5B52"
+        android:text="Parcha" />
+
+    <TextView
+        android:id="@+id/call_who"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:gravity="center"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:textColor="#232326"
+        android:text="" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#FFE3D3"
+        android:padding="22dp">
+
+        <TextView
+            android:id="@+id/call_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#232326"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/call_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:textColor="#4A3F38"
+            android:text="" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Two targets, each a thumb wide, far enough apart not to be hit by mistake. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="48dp"
+        android:weightSum="2">
+
+        <Button
+            android:id="@+id/call_later"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="88dp"
+            android:layout_marginEnd="10dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#232326"
+            android:background="#FFD28A"
+            android:text="Later" />
+
+        <Button
+            android:id="@+id/call_taken"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="88dp"
+            android:layout_marginStart="10dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="#2E9E5B"
+            android:text="Taken" />
+    </LinearLayout>
+</LinearLayout>
