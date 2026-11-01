@@ -20,6 +20,18 @@
             </intent-filter>
         </activity>
 
+        <!-- The medicine reminder as a call: its own screen, shown over the
+             lock screen with the app not running. Not exported: only Parcha
+             itself ever starts it. -->
+        <activity
+            android:name=".CallActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -37,5 +49,15 @@
     <!-- Scanning the code on a Parcha, and photos of the bill and medicine strips.
          Without it the app's web view cannot ask for the camera at all. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- A dose that falls due takes the whole screen, the way a call does.
+         From Android 14 this is granted only to apps Android reads as alarms
+         or dialers; without it the screen still appears, but only while
+         Parcha is open (CallScreenPlugin.canRing says which). -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- To light the screen when the reminder arrives. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Shown over the lock screen, like an incoming call. -->
+    <uses-permission android:name="android.permission.SHOW_WHEN_LOCKED" />
+    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
