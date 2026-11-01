@@ -130,7 +130,8 @@ export function CheckMedicines() {
   async function photo(kind: "rx" | "bill", file: File | undefined) {
     if (!file) return;
     setPhotos({ ...photos, [kind]: await shrinkPhoto(file, 1200) });
-    if (kind === "bill") setToRead(await shrinkPhoto(file, 2000));
+    // The paper to read: the bill, or the printed Parcha when that is what this is.
+    if (kind === "bill" || printed) setToRead(await shrinkPhoto(file, 2000));
   }
 
   async function finish() {
@@ -262,12 +263,14 @@ export function CheckMedicines() {
               {printed ? t("The medicines on your Parcha", "आपके पर्चे की दवाइयाँ", "Aapke Parche ki dawaiyan") : t("Add each medicine from the bill", "बिल से हर दवा जोड़ें", "Bill se har dawa jodein")}
             </p>
             {toRead ? (
-              <BillReader picture={toRead} paper={printed ? "parcha" : "bill"} drugs={formulary.data} added={lines.map((l) => l.drug.id)} onAdd={add} />
+              <BillReader picture={toRead} paper={printed ? "parcha" : "bill"} drugs={formulary.data} added={lines.map((l) => l.drug.id)} onAdd={add} onRetake={() => setToRead(null)} />
             ) : (
               <label className="hover-orange flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#232326] bg-white px-4 text-center text-lg font-bold">
                 <Camera className="size-6 shrink-0" aria-hidden />
-                {t("Photo of the bill, to read it on this phone", "बिल की फ़ोटो, इसी फ़ोन पर पढ़ने के लिए", "Bill ki photo, isi phone par padhne ke liye")}
-                <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => void photo("bill", e.target.files?.[0])} />
+                {printed
+                  ? t("Photo of the Parcha, to read it on this phone", "पर्चे की फ़ोटो, इसी फ़ोन पर पढ़ने के लिए", "Parche ki photo, isi phone par padhne ke liye")
+                  : t("Photo of the bill, to read it on this phone", "बिल की फ़ोटो, इसी फ़ोन पर पढ़ने के लिए", "Bill ki photo, isi phone par padhne ke liye")}
+                <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => void photo(printed ? "rx" : "bill", e.target.files?.[0])} />
               </label>
             )}
             <div className="relative">

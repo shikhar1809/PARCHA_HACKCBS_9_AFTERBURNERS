@@ -13,12 +13,13 @@
  * line each name was found on goes with it, so the times printed beside the
  * name can be filled in (and are still confirmed by the person).
  */
-import { medicinesIn, type Drug, type Finding } from "@parcha/core";
+import { judgeReading, medicinesIn, type Drug, type Finding, type PhotoProblem } from "@parcha/core";
 import { cn } from "@parcha/ui";
 import { Check, Loader2, ScanText, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useT } from "../i18n";
+import { checkPhoto, PhotoRejected } from "./photoCheck";
 import { PhotoCrop } from "./PhotoCrop";
 import { readText } from "./readText";
 
@@ -28,6 +29,7 @@ export function BillReader({
   added,
   onAdd,
   paper = "bill",
+  onRetake,
 }: {
   picture: string;
   drugs: Drug[];
@@ -35,10 +37,13 @@ export function BillReader({
   onAdd: (drug: Drug, finding: Finding) => void;
   /** What is in the photo, for the words on screen. */
   paper?: "bill" | "parcha";
+  /** Throws this photo away so another can be taken. */
+  onRetake?: () => void;
 }) {
   const t = useT();
   const parcha = paper === "parcha";
-  const [state, setState] = useState<"idle" | "reading" | "done" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "reading" | "done" | "failed" | "rejected">("idle");
+  const [problem, setProblem] = useState<PhotoProblem | null>(null);
   const [progress, setProgress] = useState(0);
   const [found, setFound] = useState<Finding[]>([]);
   const [dropped, setDropped] = useState<string[]>([]);
@@ -54,16 +59,48 @@ export function BillReader({
     img.src = picture;
   }, [picture]);
 
+  /**
+   * Refused before reading if the photo is not clear, and refused after if the
+   * reader was not sure of what it read. A refused photo shows nothing found
+   * on it, not even the names the reader was sure of: half a bill looks
+   * exactly like a whole one.
+   */
   async function read() {
     setState("reading");
     setProgress(0);
+    setProblem(null);
     try {
+      const pixels = await checkPhoto(picture);
+      if (!pixels.ok) {
+        setProblem(pixels.problem);
+        setState("rejected");
+        return;
+      }
       const lines = await readText(picture, setProgress);
+      const reading = judgeReading(lines);
+      if (!reading.ok) {
+        setProblem(reading.problem);
+        setState("rejected");
+        return;
+      }
       setFound(medicinesIn(lines, drugs));
       setState("done");
     } catch {
       setState("failed");
     }
+  }
+
+  if (state === "rejected" && problem) {
+    return (
+      <PhotoRejected problem={problem} what={parcha ? t("photo of the Parcha", "पर्चे की फ़ोटो", "parche ki photo") : t("photo of the bill", "बिल की फ़ोटो", "bill ki photo")}>
+        {onRetake ? (
+          <button type="button" onClick={onRetake} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-[#232326] bg-white text-lg font-bold shadow-[0_3px_0_#232326]">
+            {t("Take the photo again", "फिर से फ़ोटो लें", "Phir se photo lein")}
+          </button>
+        ) : null}
+        <p className="text-base">{t("Or add the medicines by searching below.", "या नीचे खोजकर दवा जोड़ें।", "Ya neeche khojkar dawa jodein.")}</p>
+      </PhotoRejected>
+    );
   }
 
   const shown = found.filter((f) => !dropped.includes(f.drug.id));

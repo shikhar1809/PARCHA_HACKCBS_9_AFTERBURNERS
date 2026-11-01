@@ -11,11 +11,12 @@
  * before it becomes the picture at dose time. It only checks; it never picks.
  */
 import { useFormulary, vaultGet, vaultPut } from "@parcha/client";
-import { stripShows, type Finding } from "@parcha/core";
+import { stripShows, type Finding, type PhotoProblem } from "@parcha/core";
 import { Camera, Check, Loader2, ScanText, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { useT } from "../i18n";
+import { checkPhoto, PhotoRejected } from "./photoCheck";
 import { PhotoCrop } from "./PhotoCrop";
 import { readText } from "./readText";
 
@@ -100,6 +101,8 @@ export function StripCapture({ medicine }: { medicine: string }) {
   const t = useT();
   const strip = useStrip(medicine);
   const [busy, setBusy] = useState<"front" | "back" | null>(null);
+  /** A photo refused as unclear: not kept, and not shown at dose time. */
+  const [refused, setRefused] = useState<{ side: "front" | "back"; problem: PhotoProblem } | null>(null);
   const formulary = useFormulary();
   const drug = formulary.data.find((d) => d.genericName.toLowerCase() === medicine.trim().toLowerCase()) ?? null;
   // What the front of the strip says, read on the phone: kept on screen only.
@@ -109,6 +112,14 @@ export function StripCapture({ medicine }: { medicine: string }) {
       if (!file) return;
       setBusy(side);
       try {
+        // Never kept if it is not clear: it would be the picture she trusts at dose time.
+        const verdict = await checkPhoto(file);
+        if (!verdict.ok) {
+          setRefused({ side, problem: verdict.problem });
+          setCheck(null);
+          return;
+        }
+        setRefused(null);
         await saveStripSide(medicine, side, file);
       } finally {
         setBusy(null);
@@ -158,6 +169,12 @@ export function StripCapture({ medicine }: { medicine: string }) {
           );
         })}
       </div>
+      {refused ? (
+        <PhotoRejected
+          problem={refused.problem}
+          what={refused.side === "front" ? t("photo of the front", "आगे की फ़ोटो", "aage ki photo") : t("photo of the back", "पीछे की फ़ोटो", "peeche ki photo")}
+        />
+      ) : null}
       {check?.state === "reading" ? (
         <p role="status" className="flex items-center gap-2 text-base font-bold">
           <Loader2 className="size-5 animate-spin" aria-hidden /> {t("Reading the strip on this phone…", "इसी फ़ोन पर पत्ता पढ़ रहे हैं…", "Isi phone par patta padh rahe hain…")}

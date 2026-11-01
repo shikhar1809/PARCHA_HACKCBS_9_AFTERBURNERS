@@ -270,3 +270,8 @@ a[aria-current="page"] {
   background-color: var(--chosen) !important;
   color: var(--chosen-ink) !important;
 }
+/* The tab bar's green is the pill that slides between tabs; the tab itself
+   stays clear so there is one green moving, not two. */
+nav[aria-label="Main"] a[aria-current="page"] {
+  background-color: transparent !important;
+}

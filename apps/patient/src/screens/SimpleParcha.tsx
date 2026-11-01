@@ -29,7 +29,7 @@ import { DoseTiles, Header, TimingRow, timingWords } from "../kit";
 type Med = { name: string; strength?: string; form?: string; frequency: string; timing: string; days: number; note?: string };
 type Simple = {
   person: string;
-  from: "signed" | "checked" | "read";
+  from: "signed" | "checked" | "read" | "sample";
   when: string;
   doctor?: string;
   hospital?: string;
@@ -50,8 +50,8 @@ function simplify(key: string, doc: ScannedDoc | CheckedDoc): Simple {
     const p = s.payload;
     return {
       person: s.person,
-      // A demo slip has no token: it says so rather than claiming a signature.
-      from: s.token ? "signed" : "read",
+      // A slip kept without its token is the demo's sample: it says so rather than claiming a signature.
+      from: s.token ? "signed" : "sample",
       when: p.t,
       doctor: p.d[0],
       hospital: p.h,
@@ -116,6 +116,7 @@ export function SimpleParcha() {
   const BADGE = {
     signed: { icon: BadgeCheck, words: t("Signed by the doctor. Read from the code on the slip.", "डॉक्टर के हस्ताक्षर वाला। पर्चे के कोड से पढ़ा गया।", "Doctor ke signature wala. Parche ke code se padha gaya."), bg: "bg-[var(--brand-soft)]" },
     checked: { icon: ReceiptText, words: t("Checked by the family against the bill. No doctor signed this copy.", "परिवार ने बिल से मिलाया। इस कॉपी पर डॉक्टर के हस्ताक्षर नहीं हैं।", "Parivaar ne bill se milaya. Is copy par doctor ke signature nahi hain."), bg: "bg-[var(--morning-soft)]" },
+    sample: { icon: ReceiptText, words: t("A sample Parcha for the demo. No doctor signed this copy.", "डेमो के लिए नमूना पर्चा। इस कॉपी पर डॉक्टर के हस्ताक्षर नहीं हैं।", "Demo ke liye namuna Parcha. Is copy par doctor ke signature nahi hain."), bg: "bg-[var(--morning-soft)]" },
     read: { icon: ReceiptText, words: t("Read from a photo and confirmed by the family. Not signed.", "फ़ोटो से पढ़ा और परिवार ने पक्का किया। हस्ताक्षर नहीं।", "Photo se padha aur parivaar ne pakka kiya. Signature nahi."), bg: "bg-[var(--morning-soft)]" },
   }[doc.from];
   const Badge = BADGE.icon;

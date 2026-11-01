@@ -23,7 +23,7 @@
  */
 import { errorMessage, readRx, vaultPut, type RxRead, markTouched
 } from "@parcha/client";
-import { normaliseFrequency, remindersFromPrescription, rxHindi, rxName, toDateString, type Reminder, type RxPayload, type Timing } from "@parcha/core";
+import { normaliseFrequency, remindersFromPrescription, rxHindi, rxName, toDateString, type PhotoProblem, type Reminder, type RxPayload, type Timing } from "@parcha/core";
 import { Screen, cn } from "@parcha/ui";
 import { BadgeCheck, Camera, Check, FlaskConical, Loader2, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -36,6 +36,7 @@ import { usePeople } from "../components/people";
 import { StripWalk } from "../components/StripWalk";
 import { shrinkPhoto } from "../components/strips";
 import { startFromPrintedPhoto } from "./CheckMedicines";
+import { checkPhoto, PhotoRejected } from "../components/photoCheck";
 import { useT } from "../i18n";
 import { BigButton, DoseTiles, Header } from "../kit";
 
@@ -52,6 +53,7 @@ export function ScanParcha() {
   const [who, setWho] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refused, setRefused] = useState<PhotoProblem | null>(null);
   /** The reminders the scanned slip makes, waiting to be checked and set. */
   const [proposed, setProposed] = useState<Omit<Reminder, "id">[]>([]);
 
@@ -93,7 +95,16 @@ export function ScanParcha() {
     setBusy(true);
     setError(null);
     try {
-      startFromPrintedPhoto(await shrinkPhoto(file, 2000), await shrinkPhoto(file, 1200));
+      const big = await shrinkPhoto(file, 2000);
+      // An unclear photo is refused here, before anything is read from it.
+      const verdict = await checkPhoto(big);
+      if (!verdict.ok) {
+        setRefused(verdict.problem);
+        setBusy(false);
+        return;
+      }
+      setRefused(null);
+      startFromPrintedPhoto(big, await shrinkPhoto(file, 1200));
       navigate("/check", { replace: true });
     } catch (e) {
       setError(errorMessage(e));
@@ -188,6 +199,7 @@ export function ScanParcha() {
                   {error}
                 </p>
               ) : null}
+              {refused ? <PhotoRejected problem={refused} what={t("photo of the Parcha", "पर्चे की फ़ोटो", "parche ki photo")} /> : null}
             </div>
           </>
         ) : null}

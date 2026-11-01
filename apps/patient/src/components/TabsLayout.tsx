@@ -58,7 +58,7 @@ export function TabsLayout() {
       >
         <span
           aria-hidden
-          className="tab-pill pointer-events-none absolute top-2 left-1.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand)] shadow-[0_3px_0_#232326]"
+          className="tab-pill pointer-events-none absolute top-2 left-1.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--chosen)] shadow-[0_3px_0_#232326]"
           style={{ width: "calc((100% - 0.75rem) / 5)", bottom: "max(0.5rem, env(safe-area-inset-bottom))", transform: `translateX(${index * 100}%)` }}
         />
         {TABS.map(({ href, label, icon: Icon }, i) => (
