@@ -1,5 +1,5 @@
 import { cn } from "@parcha/ui";
-import { AlarmClock, ClipboardList, FileText, HeartHandshake, Home, User } from "lucide-react";
+import { AlarmClock, FileText, HeartHandshake, Home, MessageCircle, User } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { setFullAppFor, useFullAppFor } from "./full-app";
@@ -13,7 +13,7 @@ const TABS = [
   { href: "/schedule", label: ["Medicines", "दवाई", "Dawai"], icon: AlarmClock },
   // In the middle: the Parchas, and the way to add a new one.
   { href: "/records", label: ["Parchas", "पर्चे", "Parche"], icon: FileText },
-  { href: "/visits", label: ["Visits", "विज़िट", "Visits"], icon: ClipboardList },
+  { href: "/ask", label: ["Ask", "पूछें", "Poochhein"], icon: MessageCircle },
   { href: "/me", label: ["Me", "मैं", "Main"], icon: User },
 ] as const;
 

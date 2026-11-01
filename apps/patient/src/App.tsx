@@ -1,13 +1,18 @@
 import { useEffect } from "react";
-import { PendingBar, SessionGuard, useOutboxSync, usingEmulators, useVisitsForPhone } from "@parcha/client";
+import { PendingBar, SessionGuard, useOutboxSync, useReminders, usingEmulators } from "@parcha/client";
+import { usableUsername } from "@parcha/core";
 import { PhoneFrame, Splash, useFontsReady } from "@parcha/ui";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { useHandset } from "./auth";
-import { Book } from "./screens/Book";
+import { seedDemoParchas } from "./components/demoParchas";
+import { drainCallAnswers } from "./components/callScreen";
+import { BackupCheck } from "./components/backup";
+import { Ask } from "./screens/Ask";
+import { HistoryView } from "./screens/HistoryView";
+import { SharedHistory } from "./screens/SharedHistory";
 import { TabsLayout } from "./components/TabsLayout";
 import { Home } from "./screens/Home";
-import { LinkCode } from "./screens/LinkCode";
 import { Me } from "./screens/Me";
 import { Records } from "./screens/Records";
 import { Schedule } from "./screens/Schedule";
@@ -20,13 +25,20 @@ import { WhoIsUsingScreen } from "./components/switcher";
 import { EasyHome } from "./screens/EasyHome";
 import { useFullAppFor } from "./components/full-app";
 import { ConsentGate } from "./components/privacy";
-import { VisitScreen } from "./screens/VisitScreen";
 import { setLangPerson, useT } from "./i18n";
-import { Visits } from "./screens/Visits";
 import { Start } from "./screens/Start";
 import { ScanParcha } from "./screens/ScanParcha";
 import { CheckMedicines } from "./screens/CheckMedicines";
-import { ConsultationDone } from "./components/NewSchedule";
+
+/**
+ * The name in `parcha.web.app/<name>`, when the path is one of those and not a
+ * screen of the app's own. The app's screens are reserved names, so a share
+ * can never shadow one.
+ */
+function sharedUsername(path: string): string | null {
+  const last = path.split("/").filter(Boolean).pop() ?? "";
+  return usableUsername(last) ? last : null;
+}
 
 /**
  * What is on screen once someone is signed in and has agreed. A person who needs
@@ -42,8 +54,20 @@ function Inside() {
   useNotificationActions(() => navigate("/schedule"), snoozeDose);
   const active = useActivePerson();
   const { picking } = usePeople();
+  // The demo phone starts with the family's three Parchas already on it, so
+  // the Parchas tab, Ask and a shared history have something real in them.
+  // A phone that has scanned anything is left alone.
   const { handset } = useHandset();
-  const visits = useVisitsForPhone(handset?.phone ?? null);
+  useEffect(() => {
+    void seedDemoParchas(handset?.phone ?? null);
+  }, [handset?.phone]);
+
+  // What was answered on a call screen while the app was closed joins the
+  // outbox here, and is sent whenever the connection comes back.
+  useEffect(() => {
+    void drainCallAnswers();
+  }, []);
+
   // The language follows the person using the phone, if they chose their own.
   useEffect(() => setLangPerson(active?.name ?? null), [active?.name]);
   // Larger text and high contrast follow the person using the phone.
@@ -68,23 +92,21 @@ function Inside() {
           <Route element={<TabsLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/schedule" element={<Schedule />} />
-            <Route path="/visits" element={<Visits />} />
             <Route path="/records" element={<Records />} />
+            <Route path="/ask" element={<Ask />} />
             <Route path="/me" element={<Me />} />
           </Route>
-          <Route path="/visit/:visitId" element={<VisitScreen />} />
-          <Route path="/book" element={<Book />} />
           <Route path="/start" element={<Start />} />
           <Route path="/scan" element={<ScanParcha />} />
           <Route path="/rx" element={<ScanParcha />} />
           <Route path="/check" element={<CheckMedicines />} />
-          <Route path="/link" element={<LinkCode />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
+      {/* Once, on the way up: a backup newer than this phone's own data is
+          offered back. A phone with its data intact is not interrupted. */}
+      <BackupCheck />
       {easy ? null : <DueAlerts />}
-      {/* When a doctor signs: "consultation finished", the new Parcha, and its schedule to check. */}
-      {easy ? null : <ConsultationDone visits={visits.data} />}
       <NativeReminders />
     </>
   );
@@ -94,26 +116,38 @@ function Inside() {
 export function App() {
   const { handset, loading } = useHandset();
   const t = useT();
+  // A doctor is not signed in and never will be. Both ways a family hands a
+  // history over land before the sign-in gate: the scanned code, which carries
+  // the summary itself, and `parcha.web.app/<name>`, which fetches a sealed
+  // box and opens it here with the PIN they were told. Everything else on this
+  // path belongs to the family and stays behind the gate.
+  const path = window.location.pathname.replace(/\/+$/, "");
+  const doctorScan = path.endsWith("/history");
+  const sharedWith = doctorScan ? null : sharedUsername(path);
 
   // The splash waits on the real start-up work: the fonts, the sign-in check,
-  // and the first batch of this handset's visits, which Home reads next. The
+  // and the first batch of this handset's reminders, which Home reads next. The
   // splash also plays its own short story, so it never flashes past.
   const fonts = useFontsReady();
-  const visits = useVisitsForPhone(handset?.phone ?? null);
-  const ready = !loading && fonts && !visits.loading;
+  const reminders = useReminders(handset?.phone ?? null);
+  const ready = !loading && fonts && !reminders.loading;
   const status = !fonts
     ? t("Getting things ready", "तैयारी हो रही है", "Taiyari ho rahi hai")
     : loading
       ? t("Checking your phone", "आपका फ़ोन देख रहे हैं", "Aapka phone check kar rahe hain")
-      : visits.loading
-        ? t("Gathering your records", "आपके काग़ज़ ला रहे हैं", "Aapke records la rahe hain")
+      : reminders.loading
+        ? t("Gathering your medicines", "आपकी दवाइयाँ ला रहे हैं", "Aapki dawaiyan la rahe hain")
         : t("Opening Parcha", "पर्चा खुल रहा है", "Parcha khul raha hai");
 
   return (
     <PhoneFrame tint="coral" label={usingEmulators ? "Patient app · localhost:3001" : "Parcha"}>
       {/* Whenever someone is waiting on the server, a bar runs across the top. */}
       <PendingBar />
-      {loading ? (
+      {doctorScan ? (
+        <HistoryView />
+      ) : sharedWith ? (
+        <SharedHistory username={sharedWith} />
+      ) : loading ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-muted-foreground text-sm">{t("Loading…", "खुल रहा है…", "Khul raha hai…")}</p>
         </div>
@@ -129,7 +163,7 @@ export function App() {
         </SessionGuard>
       )}
       <Splash
-        ready={ready}
+        ready={doctorScan || !!sharedWith || ready}
         status={status}
         words={{
           headline: t("Simplifying your medical journey", "इलाज का सफ़र आसान", "Ilaaj ka safar aasaan").split(" "),
