@@ -53,7 +53,7 @@ export function Home() {
         {people.length === 1 ? <Avatar name={household[0].name} size={42} /> : people.length > 1 && !me ? <AvatarStack people={people} size={38} /> : null}
       </header>
 
-      <Screen className="flex flex-col gap-3 px-4 pb-3">
+      <Screen className="flex flex-col gap-3 px-4 pb-28">
         {reminders.error ? (
           <p role="alert" className="text-destructive py-4 text-base">
             {t("Could not load your medicines.", "आपकी दवाइयाँ नहीं खुल पाईं।", "Aapki dawaiyan nahi khul paayi.")} {reminders.error}

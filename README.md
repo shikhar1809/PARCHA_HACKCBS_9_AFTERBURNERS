@@ -1,95 +1,123 @@
 # Parcha
 
-**A prescription in 30 seconds that the patient's family can read, hear and
-follow, even offline.**
+**The prescription, made for the person who has to take it.** Parcha turns a
+doctor's prescription into reminders an elderly patient can actually follow —
+the photo of the strip in her hand, the time said out loud in her language,
+one tap for "taken" — and lets the rest of the family see that she did.
 
-A doctor in an Indian OPD has two or three minutes a patient. Parcha gets the
-prescription written in seconds (same as last visit, the doctor's own sets and
-usual medicines, a search that understands "PCM 650"), checks it for allergies,
-interactions and today's vitals before it is signed, and puts it on the
-family's phone as pictures, in Hindi, English or Hinglish, read aloud, with
-reminders and a call.
-It keeps working with no internet.
-
-A correct prescription stops working the moment the patient leaves the room. A
-government hospital in Kolkata looked at 380 of its own: 96% legible, 86%
-complete — and 36.8% of those patients did not understand what they had been
-given. That gap, not the consultation, is what this is built for.
+> A government hospital in Kolkata audited 380 of its own prescriptions: **96%
+> legible, 86% complete — and 36.8% of those patients did not understand what
+> they had been given.** A correct prescription stops working the moment the
+> patient leaves the room. That gap is what Parcha is built for.
 
 <p align="center">
-  <img src="docs/screenshots/clinic-desk.png" alt="The front desk" width="62%">
-  <img src="docs/screenshots/patient-home.png" alt="The patient app" width="19%">
-  <img src="docs/screenshots/patient-prescription.png" alt="A prescription as pictures" width="17%">
+  <img src="docs/screenshots/android/hello-family.png" alt="Hello, Shukla family" width="19%">
+  <img src="docs/screenshots/android/dose-card.png" alt="A dose, under the photo of its strip" width="19%">
+  <img src="docs/screenshots/android/overview.png" alt="The family's Overview" width="19%">
+  <img src="docs/screenshots/android/dadi-simple-screen.png" alt="Dadi's simple screen" width="19%">
+  <img src="docs/screenshots/android/schedule-locked.png" alt="Schedule locked" width="19%">
 </p>
+<p align="center"><sub>Every screenshot above is from the Android app running on a real Galaxy Tab A9 (Android 16), against the live backend.</sub></p>
 
-```
-at the clinic                              in the family's hands
-─────────────                              ─────────────────────
-desk registers, takes vitals
-         ↓
-doctor consults, safety check, signs
-         ↓
-printed Parcha with a signed QR    ──────→  the family scans it at home
-                                                      ↓
-                                            medicines by time of day, ticked
-                                            off, reminders in the app, on the
-                                            phone, and by a phone call
-                                                      ↓
-                                            Ask: which Parcha is this medicine
-                                            on, who wrote it, when does the
-                                            course end
-                                                      ↓
-                                            hand a doctor the history: a QR to
-                                            scan, or a link for 15 minutes
-```
+---
 
-Pharmacy and billing are optional seats after the doctor; the visit itself ends at the signed prescription.
-
-**The phone and the clinic stay apart.** A patient's handset reads **nothing**
-under the clinic's records — not the visit, not the queue, not the prescription
-([firestore.rules](firestore.rules)). What a family holds is its own: the
-Parchas they scanned, their reminders, their papers, kept encrypted on the
-phone. The prescription crosses the gap the way the paper does — the family is
-handed the printed Parcha and scans the signed QR on it, which carries the
-whole document and is checked on the device with no network at all. So what the
-chemist reads and what the phone reminds about are the same slip, and a
-clinic's records are not sitting on a handset nobody at the clinic controls.
-
-## Try it
+## For judges: the two-minute path
 
 | | |
 | --- | --- |
-| **Patient app (web)** | https://parcha.web.app |
-| **Android app** | https://parcha-android.web.app (scan the QR) |
-| **Clinic program for Windows** | https://parcha-desktop.web.app |
-| **Clinic app (web)** | https://parcha-clinic.web.app |
+| **Android app** | **https://parcha-android.web.app** — scan the QR, install the APK |
+| **Same app in a browser** | https://parcha.web.app |
+| **Clinic app** (where a Parcha is written) | https://parcha-clinic.web.app |
+| **Demo family phone** | **9811044321** — the Shukla family: Dadi (Prabha Devi, 71), Prashant (48), Priya (42) |
 
-The clinic app opens on a choice of three demo set-ups around Shaheed Sukhdev
-College, Rohini: **Rohini City Hospital** (a large hospital: reception, triage,
-doctors, pharmacy, billing, management), **Sector 9 Care Hospital** (medium: front desk,
-doctors, management), **Dr. Verma's Clinic** (one doctor who does everything),
-or **Custom** (a new, empty clinic you set up yourself). The patient app opens
-with the demo family phone (**9811044321**: Priya, Prashant and Prabha, "Dadi")
-already filled in, each with the Parcha their doctor wrote. The people, visits
-and Parchas are sample data. Deploying is in [docs/DEPLOY.md](docs/DEPLOY.md).
+1. **Pick a person.** The phone greets the family and asks who is using it. Pick **Prashant**.
+2. **Overview.** Each family member's doses today, which are late, and a feed of what happened ("Dadi took Metoprolol at 8:33").
+3. **Tap the yellow banner** (when a dose is due). One card per medicine, the strip's photo on top, **Taken** or **Not taken** (asks again in 30 minutes).
+4. **New Parcha → No → add a medicine.** Nothing is guessed: times start empty, every medicine is confirmed by hand, then each strip is photographed front and back, then the schedule is **locked**.
+5. **Switch → Dadi.** Her simple screen says aloud when her next medicine is, shows the strip to look for, and has one button to **record a voice message** for the family.
+6. **Parchas → Simple Parcha.** The prescription redrawn for an old person: pictures for morning/afternoon/night, food in her words, the last day as a date, and a button that reads it out.
 
-## The apps
+---
+
+## The patient journey
+
+```
+  "Do you have a printed Parcha?"
+        │
+   ┌────┴─────────────────────────────┐
+  YES                                 NO
+   │                                   │
+ scan the signed QR               photograph the pharmacy bill
+ (checked on the phone,           → names read ON the phone, each boxed on the photo
+  no network)                     → the doctor/chemist's words (keyboard mic)
+   │                              → each medicine pre-filled only from what was said
+ or photograph the slip           → green / yellow / red: bill vs. words
+ → read on the phone,                  │
+   times taken from the printed line   │
+   └────────────────┬──────────────────┘
+                    ▼
+     every medicine confirmed by a person ("Yes, this is right")
+                    ▼
+     each strip photographed, front and back, one medicine at a time
+                    ▼
+     schedule created and LOCKED  ──→  a Simple Parcha to keep
+                    ▼
+  at dose time: a banner with the strip → one card per medicine → Taken / Not taken
+  on Android:   a full-screen "call" in Hindi → हाँ, ले ली · नहीं ली · संदेश रिकॉर्ड करें
+  not taken:    asked again in 30 minutes — the app, the alarm and the phone call agree
+                    ▼
+  the family's Overview: who took what, what is late, Dadi's voice messages
+```
+
+## On a real device
+
+| New Parcha | Nothing is invented | Confirm each one | Each strip, one at a time |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/android/new-parcha-printed.png" width="180"> | <img src="docs/screenshots/android/no-invented-times.png" width="180"> | <img src="docs/screenshots/android/confirm-each-medicine.png" width="180"> | <img src="docs/screenshots/android/strip-walkthrough.png" width="180"> |
+| Printed (QR or photo) or not (bill + voice). | A medicine with no time said or printed starts empty and blocks the next step. | Every medicine, green ones too, is ticked by a person. | Both sides needed; the phone checks the name is on the strip. |
+
+| Strip checked on the phone | Dose card | Family, expanded | Ticked, and to come |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/android/strip-checked-on-device.png" width="180"> | <img src="docs/screenshots/android/dose-card.png" width="180"> | <img src="docs/screenshots/android/family-expanded.png" width="180"> | <img src="docs/screenshots/android/history-grid.png" width="180"> |
+| A wrong strip is caught before it becomes the picture at dose time. | One medicine per card. Three at 8 am are three cards. | Read-only: only Dadi can tick Dadi's doses. | Behind today: what was ticked. Ahead: what is scheduled. Grey: no record yet. |
+
+| Dadi's screen | A voice message | Schedule locked | Hello, family |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/android/dadi-simple-screen.png" width="180"> | <img src="docs/screenshots/android/voice-message.png" width="180"> | <img src="docs/screenshots/android/schedule-locked.png" width="180"> | <img src="docs/screenshots/android/hello-family.png" width="180"> |
+| Speaks the next time on opening (female Hindi voice), with mute. | Up to 30 s, heard back before it is sent. | Locked reminders cannot be edited or deleted; a newer Parcha replaces them. | Whatever is chosen is green, everywhere. |
+
+## Honest by design
+
+These are rules in the code, not wishes in a slide:
+
+- **No time is ever invented.** A medicine nobody said or printed a time for starts empty and cannot go forward. Defaults that look helpful are how wrong doses happen.
+- **A human confirms every medicine.** Green "matches" included. Changing a medicine un-confirms it.
+- **AI only fills in, on the phone.** Bill and strip reading run on the device (Tesseract, models served locally). Every name is boxed on the photo with *why* it counts; nothing is added until a person taps Add; nothing is uploaded.
+- **Signed vs. checked is never blurred.** A Simple Parcha says "Signed by the doctor" only when it came from a verified QR; otherwise "Checked by the family against the bill. No doctor signed this copy."
+- **Doses belong to the person who takes them.** On a shared phone, Prashant cannot tick Dadi's dose; a slip naming someone else is refused, with a button to switch.
+- **"Not ticked", never "missed".** A dose taken and not ticked looks the same from outside, and the words say so.
+- **Sample pictures say they are samples** — on the picture and beside it — and never count as photographed.
+- **A voice message is not an emergency service**, and the screen says so: nobody is called, the family hears it when they open the app. Nothing transcribes or interprets it.
+- **The phone and the clinic stay apart.** A handset reads **nothing** under the clinic's records ([firestore.rules](firestore.rules)). The prescription crosses on paper, through the signed QR.
+- **A locked schedule is locked on the server too**, not just hidden in the UI ([reminders.ts](firebase/functions/src/reminders.ts)).
+
+## What is in the box
 
 | | Who | What |
 | --- | --- | --- |
-| **Clinic app** [`apps/clinic`](apps/clinic) | Front desk, doctors, an admin | Register a patient; intake (vitals, complaint, choose a doctor); a doctor's queue; prescribing with typo-tolerant medicine search (or any medicine written by hand), dictation you tick through, tests to order, and a live safety check that includes children's doses and pregnancy; a printable prescription; a team page where wiring a desk to doctors is a drawing and who is on duty shows green; **Billing** from the clinic's price list, paid by cash, UPI, card or a **Razorpay** payment-page QR, with a printed receipt; **Management** for people and their roles (several per person), fees, the price list and the Razorpay page; **Messages** inside the team (Ctrl+M): end-to-end encrypted channels and direct messages, spoken messages recognised on the device, `@` a person, a token number or a patient to put a visit or an active prescription in the line (hover for a quick view, click to open it), and patients shared as links only. |
-| **Patient app** [`apps/patient`](apps/patient) | Patients and their families | In **Hindi, English or Hinglish**, chosen per person. Five tabs: **Home** (today's medicines), **Medicines** (a day-by-day schedule, ticked off, with reminders and reminder calls), **Parchas** (every one this phone holds), **Ask** (what the record says about a medicine — which Parcha, which doctor, when the course ends), and **Me**. A new Parcha arrives by scanning the signed QR, or by checking the medicines off a pharmacy bill, which the phone **reads for you** (each name boxed on the photo, for you to add or not; nothing leaves the phone). Me holds the family, their papers, a PIN, a sealed **backup** of the phone, and **Show the doctor**: a QR with the whole history in it, or a link that lives 15 minutes and can be revoked. An Android app and a PWA. |
-| **Desktop program** [`apps/desktop`](apps/desktop) | The front desk | The clinic app as a Windows program: prints through the computer's printers and keeps its own encrypted copy of the data. |
+| **Patient app** [`apps/patient`](apps/patient) | Families | **Overview** (each person's doses, the family feed, voice messages, the history wall), **Medicines**, **Parchas** (with Simple Parcha), **Ask** (answers only from the Parchas on the phone), **Me** (family, PIN, sealed backup, *Show the doctor*: a QR or a 15-minute link). Hindi, English or Hinglish per person. Android app and PWA. |
+| **Android extras** | Elders | Local alarms that work offline; a native full-screen reminder "call" with the strip, three answers and a voice recorder; reminders spoken in a woman's Hindi voice. |
+| **Clinic app** [`apps/clinic`](apps/clinic) | Desk and doctors | Register → vitals → consult → **deterministic safety check** (allergy, interactions, vitals, age, max dose by weight, pregnancy) → sign → print a Parcha with a signed QR. Pharmacy, billing (cash, UPI, card, Razorpay), management, end-to-end encrypted staff messages. |
+| **Desktop** [`apps/desktop`](apps/desktop) | Front desk | The clinic app as a Windows program with its own encrypted copy. |
 
-## A look around
+<details>
+<summary><b>The clinic side, in pictures</b></summary>
 
 | Front desk | Doctor |
 | --- | --- |
 | ![Intake](docs/screenshots/clinic-intake.png) | ![Dossier](docs/screenshots/clinic-consultation.png) |
-| Vitals and the complaint, sent to a chosen doctor. | Today's reading, allergies and history in one view. |
 
-**The safety check** runs while the doctor prescribes, and again on the server when
-they sign. A high-severity flag must be read before the prescription can be signed.
+**The safety check** runs while the doctor prescribes, and again on the server when they sign.
 
 ![The safety check](docs/screenshots/clinic-prescribe-safety.png)
 
@@ -97,181 +125,79 @@ they sign. A high-severity flag must be read before the prescription can be sign
 | --- | --- |
 | ![Signed](docs/screenshots/clinic-prescription-signed.png) | ![Team](docs/screenshots/clinic-team.png) |
 
-**Each clinic decides who does what.** A doctor alone, a small clinic or a hospital: set up in four steps, then people and their roles are managed behind a PIN. One person can hold several roles (a doctor who also runs the pharmacy), and what they can do adds up.
-
-**Messages, with patients in the line.** Type `@rx` or `@` and a token number: the active prescription sits in the message as a chip, with a quick view on hover and the visit a click away. Encrypted end to end.
-
 ![Messages](docs/screenshots/clinic-messages.png)
-
-| Clinic set-up | Manage: seats and abilities |
-| --- | --- |
-| ![Set-up](docs/screenshots/clinic-setup.png) | ![Manage](docs/screenshots/clinic-manage.png) |
-
-**On the patient's phone**
-
-| Who is using Parcha? | Home | Medicines | Easy mode |
-| --- | --- | --- | --- |
-| <img src="docs/screenshots/patient-who-is-using.png" width="160"> | <img src="docs/screenshots/patient-home.png" width="160"> | <img src="docs/screenshots/patient-schedule.png" width="160"> | <img src="docs/screenshots/patient-easy-mode.png" width="160"> |
-| A shared phone asks whose turn it is, then shows only them. | Today's medicines, and the two things people come for: a new Parcha, or a question about an old one. | The day's medicines, ticked off, with reminders. | One big screen, read aloud, for someone who needs help. |
-
-*(The screenshots are from before the patient app was narrowed; Home and the
-tab bar have changed. `node scripts/screenshots.mjs` remakes them.)*
-
-## Features
-
-- **The visit, at the clinic.** Register, vitals, consult, sign. Each hospital is a wall: staff see only their own patients, team and queues.
-- **Ask your own Parchas.** Name a medicine (or photograph the strip) and the phone says which Parcha it is on, which doctor wrote it, where and when, drawn as pictograms rather than `1-0-1`, with courses about to finish listed as what they are. It answers only from the Parchas on that phone, and never says what a medicine is for or whether to take it — none of that is on the paper. Plain code, no model: [`packages/core/src/askMemory.ts`](packages/core/src/askMemory.ts).
-- **Hand a doctor the history, two ways.** A **QR** carrying the whole summary, read off the screen by the doctor's camera with no network and no server in the path — and so nothing to expire or revoke. Or a **link** (`parcha.web.app/<name>`) that lives 15 minutes, opens with a PIN the family reads out, and dies the moment they tap Revoke. The link's summary is sealed on the phone with a key made from that PIN, so what the server keeps is a box it cannot open; five wrong PINs close it.
-- **The phone keeps a copy of itself.** Sealed with the family's PIN, kept in a store of its own, and checked once on the way up: a backup newer than the phone's own data is offered back, never restored without asking. Savable as a file, which is what moves a family's Parchas to a new handset.
-- **Prescribing that keeps up.** Fuzzy search of the medicine register ("para" finds paracetamol); dictation turned into a checklist of medicine, dose and timing for the doctor to tick (a human always in the loop); a printable prescription.
-- **A deterministic safety check** for allergy, drug interaction, vitals, age, the most a day (by weight for a child) and pregnancy; a medicine not in the list can still be written by hand, marked as unchecked. No model, no guesswork: [docs/SAFETY-ENGINE.md](docs/SAFETY-ENGINE.md).
-- **Reminders that reach people.** In-app, as phone notifications with Taken and Later buttons and a chime, and as **phone calls** in Hindi or English (press 1 when taken).
-- **One phone, a whole family.** People with their own faces, ages and helpers; an easy mode for elders with a helper PIN; reminder calls to a person's own verified phone.
-- **Hindi, English or Hinglish.** The patient app speaks one language at a time, chosen at sign-in or in Me, and each person on a shared phone keeps their own: screens, spoken medicines, reminders and notifications all follow it.
-- **Messages inside the team, end-to-end encrypted.** Ctrl+M (or the button at the bottom right) opens channels for the whole hospital and direct messages only the two people can read. Every message is encrypted on the sender's computer for each reader's device; the database and the server see only ciphertext. A patient is shared as a link (record, visit or prescription), never as data: type `@` and a token number or a name, and the visit or the active prescription sits in the message as a chip, with a quick view on hover and the visit a click away. It opens only for someone allowed to see that patient. Speak a message and it is recognised on the computer itself; the sound never leaves it.
-- **AI that only fills in.** The patient app reads the printed medicine names on a pharmacy bill, and checks a strip's photo shows the right medicine, on the phone itself: every name is boxed on the photo with why it counts, nothing is added until the person taps Add, nothing is suggested, and nothing is uploaded or kept: [docs/PATIENT-APP.md](docs/PATIENT-APP.md#reading-on-the-phone-ai-that-only-fills-in).
-- **Works offline.** Both apps keep an encrypted copy on the device and queue changes made with no signal. The clinic can register, take vitals, consult, sign and print with the internet down; the patient app's Home, Medicines, Parchas and Ask all read from the phone alone, and a backup can be made with no connection at all: [docs/OFFLINE.md](docs/OFFLINE.md).
-- **Their data is theirs.** Consent, a full export and deletion, built in.
-
-## The revision: what was cut, and why
-
-Parcha began as the whole outpatient chain — the family asked for a visit from
-their phone, a desk had fifteen minutes to find a doctor, a request nobody
-answered moved itself to the next hospital, the phone watched the queue and the
-token, and the visit ended in a signed Parcha. All of that was built and
-working.
-
-**It has been narrowed on purpose.** The patient app is now the product, and it
-is not a window onto a clinic's queue: it is the family's own record of what
-they were told to take. Three things came out of it, and the backend behind
-them:
-
-| Cut | What it was | Why |
-| --- | --- | --- |
-| Patient-initiated visits | Request, propose, accept, cancel; the hospital map; the fee-and-rating suggestion | A booking product is a different product, and a crowded one. The gap the evidence points at is after the consultation, not before it. |
-| The fifteen-minute promise | A request routed itself to the next hospital on a timer, with a countdown on the phone and in the desk's inbox | It only exists to serve patient-initiated requests. With those gone it had nothing to route. |
-| The patient's view of the visit | The queue, the token, the stage, feedback after the consultation | It required the handset to read the clinic's records. Closing that read entirely is a stronger promise than fencing it. |
-
-What replaced them is the same effort pointed at the house instead of the
-waiting room: **Ask**, which answers from the Parchas the phone already holds;
-**Show the doctor**, so a family can hand their history over without a hospital
-in the middle; and a **backup**, because a product whose records live only on a
-phone owes that phone a way back.
-
-The clinic app keeps its full consultation — register, vitals, prescribe,
-safety check, sign, print, pharmacy, billing — and loses only the request
-inbox it no longer has anything to put in.
-
-**What this costs, said plainly.** A clinic gets no bookings out of Parcha, so
-the reason for a clinic to run it is the consultation and the printed Parcha
-alone. The patient app no longer tells a family anything about a visit in
-progress. And the fifteen-minute share is the one place a sealed copy of
-clinical data leaves the phone at all — the QR remains for families who would
-rather it did not.
+</details>
 
 ## What is real, and what is not
 
-Built and tested here (against the Firebase emulators):
+**Proven on a real Android tablet** (Galaxy Tab A9, Android 16, live backend): the
+dose cards with Taken / Not taken; the bill-path New Parcha from search to a
+locked schedule, including two real camera round trips and the on-device strip
+check; the Overview and family feed; Dadi's screen speaking on open; recording a
+voice message in the app; the "Hello, Shukla family" switcher; green selection.
 
-- The visit at the clinic, and tenant isolation between hospitals.
-- The safety check, live and again at signing.
-- **The reminder calling agent, end to end**: a dose falls due, the dispatcher places the call to the number that signed in, pressing 1 ticks the dose, and the next run does not call about it again. Consent, quiet hours, one retry, verified numbers, and every enabled account reached (it used to stop at 500 and tell nobody).
-- **The fifteen-minute share**: the server keeps ciphertext and no PIN, five wrong PINs close a link, Revoke closes it at once, and a name that was never used answers exactly as one that is finished.
-- **The phone's backup**: wiped the vault, restarted, and all three Parchas came back from the sealed copy.
-- Offline for both apps, with the server half under test.
-- **Staff sessions pinned to a place and a network**, ended the moment either changes, and an **activity log** doctors can read: who did what, from where, in plain sentences.
-- **For people who cannot see or hear**: read aloud in Hindi and English, spoken reminders, larger text and high contrast; flashing, vibrating reminders and no calls for someone deaf; access needs on the patient record with a big-text "Show to patient" pad and large-print prescriptions.
-- **Prescribing without voice**: search by name, brand, formula ingredient or class with same-formula alternatives; the schedule by hand (subah, dopahar, shaam, raat; every day, every few days, weekly).
-- **Roles instead of fixed job titles**: each clinic decides who does what (a doctor alone, a small clinic, a hospital), with a set-up wizard, a doctor's first-sign-in profile and a PIN-protected Management page. A person can hold several roles.
-- **End-to-end encrypted messages between staff** (ECDH P-256 per device, AES-256-GCM per message, HKDF-wrapped for each reader's device; private keys non-extractable in the browser), with the security rules accepting only ciphertext, keeping a direct message to its two people, and every message from the person signed in, never changed or deleted. A safety code lets two people check no key was swapped.
-- **The patient app in three languages** (Hindi, English, Hinglish), per person on a shared phone.
-- **180 unit tests and 69 integration tests** (rules and functions together), run on every push.
+**Tested in code:** 181 unit tests (`npm test`), including the dose-line reader
+for printed Parchas and the plain call script; 69 integration tests for rules and
+functions against the emulators (last run before this round of changes).
 
-Written but **not proven**:
+**Written but not yet proven:**
 
-- The **Twilio** adapter for real calls has not been run against a live account; everything above it is proven against the demo line. Indian telecom rules apply: [docs/CALLING.md](docs/CALLING.md).
-- Reading a **medicine name off a photograph** in Ask is built as a seam and says it is not configured; no model is wired to it yet.
-- The **Android app** builds but has not been run on a device or emulator: [docs/ANDROID.md](docs/ANDROID.md).
-- Capacity for "1 lakh requests" is reasoning, not a measurement: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- The privacy notice is an engineering draft, not reviewed by a lawyer.
-- There are no real users yet.
-
-Not built: push for a closed phone in the browser, real phone sign-in outside the emulator.
+- **Voice messages reaching the family** need the `sendFamilyMessage` / `heardFamilyMessage` functions and the new rule deployed to the live project. Until then, sending says it failed and keeps the recording.
+- **The native call screen's three answers and recorder** are built into the APK but were not rung end to end on the tablet in this round.
+- **Real telephone calls** (Twilio) are wired and unrun against a live account ([docs/CALLING.md](docs/CALLING.md)).
+- **A locked phone**: Android 14+ withholds full-screen intents from apps it does not read as alarms; over a locked screen the reminder is unproven.
+- **Agent memory (Meko)**: the API key works; the export stays parked until Secret Manager is enabled on the project.
+- Indian OEM battery savers (Xiaomi, Oppo, Vivo) can delay alarms — untested.
+- The APK is a debug build. There are no real users yet.
 
 ## Run it
 
-You need Node 22+ and Java 11+ (for the emulator). No cloud account.
+Node 22+ and Java 11+ (for the emulators). No cloud account needed.
 
 ```bash
 npm install
 npm run emulators        # auth, firestore, functions
-npm run seed             # the demo hospitals, doctors and patients
-npm run dev:clinic       # http://localhost:3000
+npm run seed             # demo hospitals, doctors and the Shukla family
 npm run dev:patient      # http://localhost:3001
+npm run dev:clinic       # http://localhost:3000
 ```
-
-Staff sign in with the demo accounts in [docs/DEMO.md](docs/DEMO.md) (password
-`parcha123`); patients pick a demo phone number. **Short on time? Follow the
-five-minute path at the top of the demo guide.**
 
 ```bash
 npm test                  # unit tests
 npm run test:integration  # rules + functions, with the emulators running
 npm run check             # typecheck both apps and build the functions
+node apps/patient/scripts/android.mjs live   # the Android APK, against the live backend
 ```
 
 ## How it is built
 
-An npm workspaces monorepo:
-
 ```
-apps/clinic        staff web app (Vite + React)
-apps/patient       patient PWA and Android app (Vite + React + Capacitor)
+apps/patient       patient PWA + Android app (Vite, React, Capacitor; native Java for the call screen)
+apps/clinic        staff web app (Vite, React)
 apps/desktop       Electron wrapper
-packages/core      pure logic: stages, safety check, schedule, call scripts
-packages/client    Firebase wiring, hooks, the offline store and outbox
-packages/ui        shared components and the theme
+packages/core      pure logic: schedule, safety check, bill/strip reading, call scripts — all unit-tested
+packages/client    Firebase wiring, hooks, the encrypted vault and offline outbox
+packages/ui        shared components and theme
 firebase/functions every write, checked on the server (Cloud Functions, asia-south1)
 ```
 
-**Clients never write clinical data.** The security rules deny it, and every change is
-a callable function, so the rule that "only a doctor can sign" is enforced where it
-cannot be skipped. Anything clinical is append-only. Staff messages are the one
-thing written straight from the app (they are not part of a record and must feel
-instant); the rules hold them instead. Details in
-[docs/SECURITY.md](docs/SECURITY.md) and [docs/DATA-MODEL.md](docs/DATA-MODEL.md).
+**Clients never write clinical data.** Rules deny it; every change is a callable
+function, so "only a doctor can sign" and "a locked schedule stays locked" are
+enforced where they cannot be skipped. Details: [docs/SECURITY.md](docs/SECURITY.md),
+[docs/DATA-MODEL.md](docs/DATA-MODEL.md).
 
 ## Documentation
 
-Everything is indexed in [docs/README.md](docs/README.md).
-
-| | |
-| --- | --- |
-| [Getting started](docs/GETTING-STARTED.md) | Install, run, fix the usual problems |
-| [Demo guide](docs/DEMO.md) | The five-minute path, every demo account |
-| [Project structure](docs/PROJECT-STRUCTURE.md) | Every folder and what lives in it |
-| [Architecture](docs/ARCHITECTURE.md) | Why it should stay up, what was measured, the limits |
-| [Architecture diagram](docs/architecture/parcha-architecture.html) | Every part and how a visit moves through them, each linked to its code (download and open in a browser) |
-| [Data model](docs/DATA-MODEL.md) | Collections and the visit stage machine |
-| [Security](docs/SECURITY.md) | Walls, roles, sessions, privacy |
-| [Functions API](docs/FUNCTIONS-API.md) | Every Cloud Function and who may call it |
-| [Safety check](docs/SAFETY-ENGINE.md) | The allergy, interaction, vitals, age, dose and pregnancy rules |
-| [Offline](docs/OFFLINE.md) | The device store, the outbox, idempotency |
-| [Clinic app](docs/CLINIC-APP.md) · [Patient app](docs/PATIENT-APP.md) | Every screen |
-| [Reminder calls](docs/CALLING.md) | The calling agent and Twilio |
-| [Android](docs/ANDROID.md) · [Desktop](docs/DESKTOP.md) | Building the native apps |
-| [Deploying](docs/DEPLOY.md) | The live sites and how to ship |
-| [Standards and law](docs/STANDARDS.md) | ABDM, ABHA and FHIR; what a valid prescription needs |
-| [Testing](docs/TESTING.md) | What is tested, and how |
-| [Research](docs/RESEARCH.md) | What clinics and patients complain about, mapped to the product |
+Everything is indexed in [docs/README.md](docs/README.md): getting started, the
+demo guide, architecture, data model, security, functions API, the safety
+check, offline, both apps screen by screen, reminder calls, Android, deploying,
+standards (ABDM, ABHA, FHIR), testing, and the research behind it.
 
 ## Contributing
 
-Changes go through a pull request that passes CI (types, unit tests, builds, and
-the integration tests against the emulators). Keep logic that both the apps and the
-functions need in `packages/core`, with a test. A new write is a new function in
-`firebase/functions`, never a client write. Screenshots in this repository are made
-by `node scripts/screenshots.mjs`.
+Pull requests pass CI (types, unit tests, builds, integration tests against the
+emulators). Logic both the apps and the functions need lives in `packages/core`,
+with a test. A new write is a new function, never a client write.
 
 ## Licence
 
