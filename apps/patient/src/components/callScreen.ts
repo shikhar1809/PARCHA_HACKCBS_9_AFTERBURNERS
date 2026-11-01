@@ -20,6 +20,7 @@ import { markDose, sendFamilyMessage, vaultGet } from "@parcha/client";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import type { Dose } from "@parcha/core";
 
+import { personLang } from "../i18n";
 import { NOT_TAKEN_MINUTES, snoozeDose } from "./alerts";
 
 type Answer = {
@@ -99,7 +100,8 @@ export async function ringForDose(
       time: dose.time,
       key: dose.key,
       date,
-      lang: lang === "en" ? "en" : "hi",
+      // Spoken in the language of the person the dose is for, not whoever is holding the phone.
+      lang: (personLang(dose.reminder.personName) ?? lang) === "en" ? "en" : "hi",
       photo: strip?.front ?? "",
     });
     return { rang: true, overLockScreen: result.overLockScreen };

@@ -8,7 +8,7 @@
  * wants their medicines or to ask for a visit goes straight to their home.
  */
 import { Screen } from "@parcha/ui";
-import { ChevronLeft, FileX2, QrCode } from "lucide-react";
+import { Camera, ChevronLeft, FileX2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { Logo } from "@parcha/ui";
@@ -48,7 +48,7 @@ export function Start() {
         {t("Do you have a printed Parcha?", "क्या आपके पास छपा हुआ पर्चा है?", "Kya aapke paas chhapa hua Parcha hai?")}
       </h1>
       <p className="text-center text-lg leading-snug">
-        {t("The printed prescription from a Parcha hospital, with a square code on it.", "पर्चा अस्पताल का छपा पर्चा, जिस पर चौकोर कोड बना हो।", "Parcha hospital ka chhapa parcha, jis par chaukor code bana ho.")}
+        {t("The prescription the doctor printed for you.", "डॉक्टर का छपा हुआ पर्चा।", "Doctor ka chhapa hua parcha.")}
       </p>
 
       <button
@@ -56,10 +56,10 @@ export function Start() {
         onClick={() => go("/scan")}
         className="flex min-h-28 w-full items-center gap-4 rounded-3xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-5 text-left shadow-[0_5px_0_#232326] active:translate-y-0.5"
       >
-        <QrCode className="size-12 shrink-0" strokeWidth={2} aria-hidden />
+        <Camera className="size-12 shrink-0" strokeWidth={2} aria-hidden />
         <span>
           <span className="block text-2xl leading-tight font-bold">{t("Yes", "हाँ", "Haan")}</span>
-          <span className="block text-lg">{t("Scan the code to get my reminders", "कोड स्कैन करके रिमाइंडर पाएँ", "Code scan karke reminder paayein")}</span>
+          <span className="block text-lg">{t("Photograph it, the phone reads it", "फ़ोटो लें, फ़ोन पढ़ेगा", "Photo lein, phone padhega")}</span>
         </span>
       </button>
 

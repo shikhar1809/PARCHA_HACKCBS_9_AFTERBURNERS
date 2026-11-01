@@ -31,7 +31,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useHandset } from "../auth";
 import { NewSchedule } from "../components/NewSchedule";
-import { QrScanner } from "../components/QrScanner";
 import { usePeople } from "../components/people";
 import { StripWalk } from "../components/StripWalk";
 import { shrinkPhoto } from "../components/strips";
@@ -154,10 +153,10 @@ export function ScanParcha() {
       <Header
         back="/"
         title={t("Add your Parcha", "अपना पर्चा जोड़ें", "Apna Parcha jodein")}
-        subtitle={step === "done" || step === "schedule" ? undefined : t(`Step ${at + 1} of ${steps.length}`, `चरण ${at + 1} / ${steps.length}`, `Step ${at + 1} / ${steps.length}`)}
+        subtitle={step === "done" || step === "schedule" || step === "scan" ? undefined : t(`Step ${at + 1} of ${steps.length}`, `चरण ${at + 1} / ${steps.length}`, `Step ${at + 1} / ${steps.length}`)}
       />
       <Screen className="space-y-5 px-4 pb-10">
-        {step !== "done" && step !== "schedule" ? (
+        {step !== "done" && step !== "schedule" && step !== "scan" ? (
           <div className="flex gap-1.5" aria-hidden>
             {steps.map((s, i) => (
               <span key={s} className={cn("h-2 flex-1 rounded-full border-2 border-[#232326]", i <= at ? "bg-[var(--brand)]" : "bg-white")} />
@@ -167,18 +166,14 @@ export function ScanParcha() {
 
         {step === "scan" ? (
           <>
-            <QrScanner onRead={(text) => void onRead(text)} />
-            <div className="space-y-2 rounded-2xl border-2 border-dashed border-[#232326] p-3.5">
-              <p className="text-base leading-snug font-bold">
-                {t(
-                  "No square code on your slip, or it will not read?",
-                  "पर्चे पर चौकोर कोड नहीं है, या पढ़ा नहीं जा रहा?",
-                  "Parche par chaukor code nahi hai, ya padha nahi ja raha?",
-                )}
+            {/* A printed Parcha is photographed and read on the phone. */}
+            <div className="space-y-3 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-4">
+              <p className="text-xl leading-snug font-bold">
+                {t("Photograph your printed Parcha", "अपने छपे पर्चे की फ़ोटो लें", "Apne chhape Parche ki photo lein")}
               </p>
-              <label className="hover-orange flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-[3px] border-[#232326] bg-white text-lg font-bold">
-                {busy ? <Loader2 className="size-6 animate-spin" aria-hidden /> : <Camera className="size-6" aria-hidden />}
-                {t("Photograph the Parcha", "पर्चे की फ़ोटो लें", "Parche ki photo lein")}
+              <label className="flex min-h-20 w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand)] text-xl font-bold shadow-[0_4px_0_#232326]">
+                {busy ? <Loader2 className="size-7 animate-spin" aria-hidden /> : <Camera className="size-8" aria-hidden />}
+                {t("Open the camera", "कैमरा खोलें", "Camera kholein")}
                 <input
                   type="file"
                   accept="image/*"

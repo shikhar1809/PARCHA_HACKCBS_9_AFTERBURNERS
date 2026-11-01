@@ -25,6 +25,7 @@
 import { markDose, useDoseLog, useReminders } from "@parcha/client";
 import { addCalendarDays, dosesOn, toDateString, type Dose } from "@parcha/core";
 import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -51,14 +52,19 @@ function notificationId(date: string, key: string, salt = 0): number {
   return (h >>> 0) % 2147483000 || 1;
 }
 
-async function plugin() {
-  return (await import("@capacitor/local-notifications")).LocalNotifications;
-}
+/**
+ * The plugin itself, never awaited or returned from an async function: a
+ * Capacitor plugin is a proxy, and resolving a promise with it makes the
+ * runtime ask it for `.then`, which the proxy answers by throwing ("then() is
+ * not implemented on android"). That one throw is enough to stop every alarm
+ * from being scheduled.
+ */
+const plugin = () => LocalNotifications;
 
 /** Asks the phone for permission to show reminders, and for exact timing. Returns whether alerts may be shown. */
 export async function requestNativePermission(): Promise<boolean> {
   if (!isNative) return false;
-  const ln = await plugin();
+  const ln = plugin();
   let granted = (await ln.checkPermissions()).display === "granted";
   if (!granted) granted = (await ln.requestPermissions()).display === "granted";
   if (granted) {
@@ -71,7 +77,7 @@ export async function requestNativePermission(): Promise<boolean> {
 
 export async function clearNativeReminders(): Promise<void> {
   if (!isNative) return;
-  const ln = await plugin();
+  const ln = plugin();
   const pending = await ln.getPending();
   if (pending.notifications.length > 0) await ln.cancel({ notifications: pending.notifications });
 }
@@ -101,7 +107,7 @@ function content(dose: Dose, nag: number) {
 }
 
 async function setUp() {
-  const ln = await plugin();
+  const ln = plugin();
   return ln.createChannel({
     id: CHANNEL,
     name: "Medicine reminders",
@@ -118,7 +124,7 @@ async function setUp() {
 /** Ticked off on the cards: the follow-ups for that dose are not needed. */
 export async function doseDoneNative(date: string, key: string): Promise<void> {
   if (!isNative) return;
-  const ln = await plugin();
+  const ln = plugin();
   const ids = [...NAGS.map((_, i) => notificationId(date, key, i + 1)), notificationId(date, key, FOLLOW_UP)];
   await ln.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => undefined);
 }
@@ -127,7 +133,7 @@ export async function doseDoneNative(date: string, key: string): Promise<void> {
 export async function followUpNative(dose: Dose, date: string, minutes: number): Promise<void> {
   if (!isNative) return;
   await doseDoneNative(date, dose.key);
-  const ln = await plugin();
+  const ln = plugin();
   await ln
     .schedule({
       notifications: [
@@ -173,7 +179,7 @@ export function NativeReminders() {
         await clearNativeReminders();
         return;
       }
-      const ln = await plugin();
+      const ln = plugin();
       if ((await ln.checkPermissions()).display !== "granted") return;
       await setUp();
 
@@ -223,9 +229,9 @@ export function NativeReminders() {
   useEffect(() => {
     if (!isNative) return;
     let remove: (() => void) | undefined;
-    plugin()
-      .then((ln) =>
-        ln.addListener("localNotificationActionPerformed", async (e) => {
+    Promise.resolve()
+      .then(() =>
+        plugin().addListener("localNotificationActionPerformed", async (e) => {
           const extra = (e.notification.extra ?? {}) as { key?: string; date?: string };
           if (e.actionId === "taken" && extra.key && extra.date) {
             await markDose(extra.date, extra.key, true).catch(() => undefined);

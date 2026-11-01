@@ -173,10 +173,10 @@ export class MekoError extends Error {
  * decide what a failure means, and for recall it means "use the rules", which
  * is not this function's judgement to make.
  */
-export async function tool<T>(name: MekoTool, args: Record<string, unknown>): Promise<T> {
+export async function tool<T>(name: MekoTool, args: Record<string, unknown>, timeoutMs = TIMEOUT_MS): Promise<T> {
   if (!ALLOWED_TOOLS.includes(name)) throw new MekoError(`tool not allowed: ${name}`, null);
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     await ensureSession(ctl.signal);
     const res = await post(
@@ -197,6 +197,10 @@ export async function tool<T>(name: MekoTool, args: Record<string, unknown>): Pr
       try {
         return JSON.parse(text) as T;
       } catch {
+        // Meko answers a bad argument with a 200 and the validation message as
+        // text. That is a failure, and is thrown as one rather than returned as
+        // if it were a result.
+        if (/validation error|missing_argument|Input should be/i.test(text)) throw new MekoError(text.slice(0, 200), null);
         return text as unknown as T;
       }
     }

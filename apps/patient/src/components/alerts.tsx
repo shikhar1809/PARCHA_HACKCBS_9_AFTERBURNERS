@@ -142,7 +142,9 @@ export function DueAlerts() {
   }, []);
 
   const navigate = useNavigate();
-  const onCards = useLocation().pathname === "/dose";
+  // Not over the dose cards themselves, nor over Ask, whose message bar sits where the banner would.
+  const path = useLocation().pathname;
+  const onCards = path === "/dose" || path === "/ask";
   const taken = log.data?.taken ?? {};
   const { people, active } = usePeople();
   const due: Dose[] = on ? dueNow(reminders.data, taken, now, active) : [];

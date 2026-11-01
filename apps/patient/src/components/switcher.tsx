@@ -48,7 +48,7 @@ export function WhoIsUsingScreen() {
         <p className="text-[2.1rem] leading-tight font-bold text-white" style={{ WebkitTextStroke: "2px #232326", paintOrder: "stroke fill", textShadow: "0 3px 0 #232326" }}>
           {family ? t(`Hello, ${family} family`, `नमस्ते, ${family} परिवार`, `Namaste, ${family} parivaar`) : t("Hello", "नमस्ते", "Namaste")}
         </p>
-        <h1 className="text-[2rem] leading-tight font-bold">{t("Who is using Parcha?", "पर्चा कौन इस्तेमाल कर रहा है?", "Parcha kaun use kar raha hai?")}</h1>
+        <h1 className="text-[2rem] leading-tight font-bold text-black">{t("Who is using Parcha?", "पर्चा कौन इस्तेमाल कर रहा है?", "Parcha kaun use kar raha hai?")}</h1>
       </div>
 
       <ul className="stagger mx-auto grid w-full max-w-md grid-cols-2 gap-4 px-5">
@@ -118,7 +118,7 @@ export function SwitchBar() {
       <button
         type="button"
         onClick={openPicker}
-        className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-full border-[3px] border-[#232326] bg-[var(--brand)] px-4 text-base font-bold shadow-[0_2px_0_#232326] active:translate-y-0.5"
+        className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-full border-[3px] border-[#232326] bg-[var(--chosen)] px-4 text-base font-bold text-white shadow-[0_2px_0_#232326] active:translate-y-0.5"
       >
         <ArrowLeftRight className="size-4" aria-hidden /> {t("Switch", "बदलें", "Badlein")}
       </button>
