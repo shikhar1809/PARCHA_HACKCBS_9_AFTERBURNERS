@@ -9,7 +9,7 @@ import { useT } from "../i18n";
 
 
 const TABS = [
-  { href: "/", label: ["Home", "घर", "Ghar"], icon: Home },
+  { href: "/", label: ["Overview", "सारांश", "Overview"], icon: Home },
   { href: "/schedule", label: ["Medicines", "दवाई", "Dawai"], icon: AlarmClock },
   // In the middle: the Parchas, and the way to add a new one.
   { href: "/records", label: ["Parchas", "पर्चे", "Parche"], icon: FileText },

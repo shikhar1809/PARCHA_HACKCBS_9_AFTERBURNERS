@@ -1,4 +1,4 @@
-import { useReminders } from "@parcha/client";
+import { useRecentDoseLogs, useReminders } from "@parcha/client";
 import { dosesOn, toDateString } from "@parcha/core";
 import { Screen } from "@parcha/ui";
 import { ChevronRight, FilePlus2, MessageCircle, Pill } from "lucide-react";
@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useHandset } from "../auth";
 import { Avatar, AvatarStack, PillsArt } from "../components/art";
 import { DoseGrid } from "../components/DoseGrid";
+import { FamilyOverview } from "../components/FamilyOverview";
 import { usePeople } from "../components/people";
 import { tr, useLang, useT, type Lang } from "../i18n";
 
@@ -20,16 +21,18 @@ const greeting = (lang: Lang) => {
 };
 
 /**
- * Home: one screen, no scrolling. A friendly line, today's medicines as the one
- * card that matters, and the two things people come to do — add a new Parcha,
- * or ask a question about the Parchas they already have. The clinic's queue is
- * not here: this app is the family's own record of what they were told to take.
+ * Overview: today's medicines as the one card that matters, then the family —
+ * how each of them is doing today and what has happened (a dose ticked, a dose
+ * running late, a voice message to hear) — then the weeks, and the two things
+ * people come to do: add a new Parcha, or ask about the ones they have. The
+ * clinic's queue is not here: this app is the family's own record.
  */
 export function Home() {
   const lang = useLang();
   const t = useT();
   const { handset } = useHandset();
   const reminders = useReminders(handset?.phone ?? null);
+  const logs = useRecentDoseLogs(handset?.phone ?? null);
   const { people: household, active } = usePeople();
   // On a shared phone, the person whose turn it is sees only their own doses.
   const mine = active ? reminders.data.filter((r) => r.personName === active) : reminders.data;
@@ -88,8 +91,10 @@ export function Home() {
           </div>
         )}
 
+        <FamilyOverview />
+
         {/* The weeks, so a course is seen whole and not one day at a time. */}
-        {!reminders.loading && mine.length > 0 ? <DoseGrid reminders={mine} person={active ?? null} /> : null}
+        {!reminders.loading && mine.length > 0 ? <DoseGrid reminders={mine} person={active ?? null} logs={logs.data} /> : null}
 
         <div className="stagger mt-auto grid grid-cols-2 gap-3">
           <Link

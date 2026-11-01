@@ -59,5 +59,8 @@
     <!-- Shown over the lock screen, like an incoming call. -->
     <uses-permission android:name="android.permission.SHOW_WHEN_LOCKED" />
     <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+    <!-- A voice message for the family, from the call screen or the simple screen. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

@@ -203,6 +203,7 @@ export function CheckMedicines() {
               <button
                 key={p.name}
                 type="button"
+                aria-pressed={who === p.name}
                 onClick={() => setWho(p.name)}
                 className={cn("hover-orange flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 border-[var(--brand-deep)] px-4 text-left text-xl font-bold", who === p.name ? "bg-[var(--brand-soft)]" : "bg-card")}
               >

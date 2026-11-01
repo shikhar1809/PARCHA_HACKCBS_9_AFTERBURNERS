@@ -759,6 +759,7 @@ export { demoPhoneSignIn, demoStaffSignIn, startNewClinic } from "./demo.js";
 export { controlVisit, setBringReady, checkInVisit, setAvailability } from "./previsit.js";
 export { addDocument, deleteDocument, saveHistory } from "./records.js";
 export { deleteReminder, markDose, saveReminders } from "./reminders.js";
+export { heardFamilyMessage, sendFamilyMessage } from "./messages.js";
 export { deleteProfile, saveProfile } from "./profiles.js";
 export { deleteMyData, exportMyData, recordConsent } from "./privacy.js";
 export {

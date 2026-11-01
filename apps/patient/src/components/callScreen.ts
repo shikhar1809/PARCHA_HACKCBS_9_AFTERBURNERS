@@ -16,11 +16,24 @@
  * In a browser there is no such screen, and `ringForDose` says so rather than
  * pretending: a web page cannot draw over a locked phone.
  */
-import { markDose } from "@parcha/client";
+import { markDose, sendFamilyMessage, vaultGet } from "@parcha/client";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import type { Dose } from "@parcha/core";
 
-type Answer = { key: string; date: string; outcome: "taken" | "snoozed"; at: number };
+import { NOT_TAKEN_MINUTES, snoozeDose } from "./alerts";
+
+type Answer = {
+  key: string;
+  date: string;
+  /** "snoozed" is what an older build wrote for "Later". */
+  outcome: "taken" | "not_taken" | "snoozed" | "message";
+  at: number;
+  /** A voice message: who said it, how long, and the sound itself. */
+  person?: string;
+  seconds?: number;
+  id?: string;
+  audio?: string;
+};
 
 type CallScreenPlugin = {
   ring(options: {
@@ -31,6 +44,8 @@ type CallScreenPlugin = {
     key: string;
     date: string;
     lang: string;
+    /** The front of the strip, as a JPEG data URL, for the screen to show. */
+    photo?: string;
   }): Promise<{ overLockScreen: boolean }>;
   canRing(): Promise<{ overLockScreen: boolean }>;
   requestPermission(): Promise<void>;
@@ -75,6 +90,8 @@ export async function ringForDose(
 ): Promise<{ rang: boolean; overLockScreen: boolean }> {
   if (!callScreenAvailable) return { rang: false, overLockScreen: false };
   try {
+    // The strip she photographed goes on the call screen too.
+    const strip = await vaultGet<{ front?: string }>(`strip:${dose.reminder.title.trim().toLowerCase()}`).catch(() => null);
     const result = await CallScreen.ring({
       title: dose.reminder.title,
       person: dose.reminder.personName,
@@ -83,6 +100,7 @@ export async function ringForDose(
       key: dose.key,
       date,
       lang: lang === "en" ? "en" : "hi",
+      photo: strip?.front ?? "",
     });
     return { rang: true, overLockScreen: result.overLockScreen };
   } catch {
@@ -112,8 +130,22 @@ export async function drainCallAnswers(): Promise<number> {
 
   let taken = 0;
   for (const answer of answers) {
-    // "Later" is not a tick: the dose stays due, and the reminder comes back.
-    if (answer.outcome !== "taken" || !answer.key || !answer.date) continue;
+    if (answer.outcome === "message") {
+      if (!answer.audio || !answer.person) continue;
+      try {
+        await sendFamilyMessage({ id: answer.id, from: answer.person, audio: answer.audio, seconds: answer.seconds ?? 1, via: "call" });
+      } catch {
+        // Left in the queue with the rest; the id makes a resend the same message.
+        return taken;
+      }
+      continue;
+    }
+    // "Not taken" is not a tick: the dose stays due, and is asked about again in thirty minutes.
+    if (answer.outcome === "not_taken" || answer.outcome === "snoozed") {
+      if (answer.key && answer.date) snoozeDose(answer.key, answer.date, NOT_TAKEN_MINUTES);
+      continue;
+    }
+    if (!answer.key || !answer.date) continue;
     try {
       await markDose(answer.date, answer.key, true);
       taken += 1;

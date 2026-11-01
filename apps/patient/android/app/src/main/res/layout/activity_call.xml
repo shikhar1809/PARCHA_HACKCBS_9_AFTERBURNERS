@@ -49,6 +49,16 @@
         android:background="#FFE3D3"
         android:padding="22dp">
 
+        <!-- The strip she photographed: the one in her hand to take. -->
+        <ImageView
+            android:id="@+id/call_strip"
+            android:layout_width="match_parent"
+            android:layout_height="170dp"
+            android:layout_marginBottom="14dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Strip"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/call_title"
             android:layout_width="match_parent"
@@ -75,12 +85,13 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Two targets, each a thumb wide, far enough apart not to be hit by mistake. -->
+    <!-- Three answers. The two about the dose sit side by side, each a thumb
+         wide; the message is the whole width below, so it is never pressed
+         when "taken" was meant. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="48dp"
         android:weightSum="2">
 
         <Button
@@ -93,7 +104,7 @@
             android:textStyle="bold"
             android:textColor="#232326"
             android:background="#FFD28A"
-            android:text="Later" />
+            android:text="Not taken" />
 
         <Button
             android:id="@+id/call_taken"
@@ -107,4 +118,26 @@
             android:background="#2E9E5B"
             android:text="Taken" />
     </LinearLayout>
+
+    <Button
+        android:id="@+id/call_record"
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
+        android:layout_marginTop="14dp"
+        android:textSize="19sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="#FF7F5A"
+        android:text="Record a message" />
+
+    <TextView
+        android:id="@+id/call_record_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="36dp"
+        android:gravity="center"
+        android:textSize="15sp"
+        android:textColor="#4A3F38"
+        android:text="" />
 </LinearLayout>

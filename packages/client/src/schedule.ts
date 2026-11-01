@@ -118,3 +118,41 @@ export const confirmCallNumber = (name: string, code: string) =>
   call<{ name: string; code: string }, { ok: true }>("confirmCallNumber", { name, code });
 
 export const clearCallNumber = (name: string) => call<{ name: string }, { ok: true }>("clearCallNumber", { name });
+
+/* ------------------------------------------------ the family, seen together */
+
+/**
+ * The phone's dose logs for recent days, in one read, for the Overview's
+ * family feed and the history grid. A phone has one document per day, so the
+ * newest sixty cover two months; they are sorted here rather than by the
+ * query, which would need an index for no gain at this size.
+ */
+export function useRecentDoseLogs(phone: string | null): Loadable<DoseLog[]> {
+  const build = useQueryFactory("doseLogs", [where("ownerPhone", "==", phone ?? "__none__"), limit(60)], [phone]);
+  const live = useQuery<DoseLog>(phone ? build : null, phone ? "doseLogs:recent" : undefined);
+  return { ...live, data: [...live.data].sort((a, b) => b.date.localeCompare(a.date)) };
+}
+
+/** A few seconds of voice from one person in the family (see firebase/functions/src/messages.ts). */
+export type FamilyMessage = {
+  id: string;
+  ownerPhone: string;
+  from: string;
+  audio: string;
+  seconds: number | null;
+  via: "call" | "app";
+  sentAt: string;
+  heardBy: string[];
+};
+
+export function useFamilyMessages(phone: string | null): Loadable<FamilyMessage[]> {
+  const build = useQueryFactory("familyMessages", [where("ownerPhone", "==", phone ?? "__none__"), limit(30)], [phone]);
+  const live = useQuery<FamilyMessage>(phone ? build : null, phone ? "familyMessages" : undefined);
+  return { ...live, data: [...live.data].sort((a, b) => b.sentAt.localeCompare(a.sentAt)) };
+}
+
+/** Sends a recording. Not queued: a voice message is too large for the offline store, so a failure says so. */
+export const sendFamilyMessage = (m: { id?: string; from: string; audio: string; seconds: number; via: "call" | "app" }) =>
+  call<typeof m, { id: string }>("sendFamilyMessage", m);
+
+export const heardFamilyMessage = (id: string, by: string) => call<{ id: string; by: string }, { ok: true }>("heardFamilyMessage", { id, by });

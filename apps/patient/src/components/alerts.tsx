@@ -183,7 +183,7 @@ export function DueAlerts() {
     {access?.deaf ? <div aria-hidden className="alert-flash pointer-events-none absolute inset-0 z-40" /> : null}
     {/* The banner only says it is time; the answer is given on the cards,
         against the picture of the strip, one medicine at a time. */}
-    <div role="alert" className="pop absolute inset-x-3 top-3 z-50 flex items-center gap-2.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 shadow-[0_4px_0_#232326]">
+    <div role="alert" className="pop absolute inset-x-3 bottom-[6.25rem] z-50 flex items-center gap-2.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 shadow-[0_4px_0_#232326]">
       <button type="button" onClick={() => navigate("/dose")} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
         <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-[#232326] bg-white">
           {strip?.front ? <img src={strip.front} alt="" className="size-full object-cover" /> : <Bell className="size-5" aria-hidden />}

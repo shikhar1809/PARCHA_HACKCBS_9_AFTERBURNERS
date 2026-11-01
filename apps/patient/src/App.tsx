@@ -75,6 +75,10 @@ function Inside() {
   // outbox here, and is sent whenever the connection comes back.
   useEffect(() => {
     void drainCallAnswers();
+    // And whenever the app comes back to the front, which is right after the call screen closes.
+    const back = () => document.visibilityState === "visible" && void drainCallAnswers();
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
   }, []);
 
   // The language follows the person using the phone, if they chose their own.

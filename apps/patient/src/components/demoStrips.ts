@@ -19,7 +19,7 @@ import { DEMO_PHONE } from "./demoParchas";
 import { notifyStrips, type Strip } from "./strips";
 
 const W = 640;
-const H = 400;
+const H = 480;
 
 /** A colour per medicine, from its name, so the same medicine always looks the same. */
 function hue(name: string): number {

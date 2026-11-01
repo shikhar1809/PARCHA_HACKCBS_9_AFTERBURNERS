@@ -1,14 +1,15 @@
 import { spokenReminder } from "@parcha/core";
-import { ListenButton, speak } from "../components/speak";
+import { isMuted, ListenButton, setMuted, speak } from "../components/speak";
 import { buzz } from "../components/alerts";
 import { errorMessage, markDose, useDoseLog, useReminders } from "@parcha/client";
-import { dosesOn, minutesSince, toDateString, type Dose } from "@parcha/core";
-import { Check, HeartHandshake, LayoutGrid, Loader2, Phone, PhoneCall, PhoneOff, Pill, Settings2, Undo2 } from "lucide-react";
+import { dosesOn, minutesSince, spokenTimeHindi, toDateString, type Dose } from "@parcha/core";
+import { Check, HeartHandshake, LayoutGrid, Loader2, Phone, PhoneCall, PhoneOff, Pill, Settings2, Undo2, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useHandset } from "../auth";
 import { Avatar } from "../components/art";
 import { StripPictures } from "../components/strips";
+import { RecordMessage } from "../components/VoiceMessage";
 import { useNow } from "../components/alerts";
 import { checkPin, hasPin, PinPad } from "../components/pin";
 import { usePeople, type Person } from "../components/people";
@@ -58,8 +59,10 @@ export function EasyHome({ person }: { person: Person }) {
   const pending = doses.filter((d) => !(d.key in taken));
   const due = pending.filter((d) => minutesSince(d.time, now) >= -DUE_LEAD_MINUTES);
 
-  // The line the reminder call says, and what the screen says aloud when it is time.
-  const timeLine = `${person.shown} ji, ${t("it's time to take your medicine", "दवाई लेने का टाइम हो गया", "dawai lene ka time ho gaya")}. ${due.map((d) => d.reminder.title).join(", ")}.`;
+  // What is said aloud: only when, never the medicine's name. A long drug name
+  // read by a phone is noise to her; the time is what she needs, and the strip
+  // on screen says which one.
+  const timeLine = tr(lang, "It's time for your medicine.", "आपकी दवा का समय हो गया है।", "Aapki dawai ka samay ho gaya hai.");
 
   // When it is time: said aloud ("dawai lene ka time ho gaya"), and flashed and
   // vibrated for someone who cannot hear. Once for each new set of medicines.
@@ -68,12 +71,27 @@ export function EasyHome({ person }: { person: Person }) {
   useEffect(() => {
     if (!dueKeys || announced.current === dueKeys) return;
     announced.current = dueKeys;
-    void speak(person.access.lowVision ? spokenReminder(person.name, due.map((d) => d.reminder.title), voice) : timeLine, voice);
+    void speak(timeLine, voice);
     if (person.access.deaf) buzz();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dueKeys, person.access.lowVision, person.access.deaf]);
   const next = pending.find((d) => minutesSince(d.time, now) < -DUE_LEAD_MINUTES);
   const snoozed = Date.now() < laterUntil;
+
+  // On opening, the screen says when the next medicine is, in her language.
+  const nextLine = next
+    ? tr(lang, `Your next medicine is at ${clockIn(lang, next.time)}.`, `आपकी अगली दवा का समय ${spokenTimeHindi(next.time)} है।`, `Aapki agli dawai ka samay ${spokenTimeHindi(next.time)} hai.`)
+    : doses.length
+      ? tr(lang, "All of today's medicines are done.", "आज की सारी दवा हो गई है।", "Aaj ki saari dawai ho gayi hai.")
+      : "";
+  const greeted = useRef(false);
+  useEffect(() => {
+    if (greeted.current || reminders.loading || dueKeys || !nextLine) return;
+    greeted.current = true;
+    void speak(nextLine, voice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reminders.loading, nextLine, dueKeys]);
+  const [muted, setMutedState] = useState(isMuted());
 
   async function tookIt(list: Dose[]) {
     setBusy(true);
@@ -131,6 +149,18 @@ export function EasyHome({ person }: { person: Person }) {
           <p className="text-lg font-bold">{hello(lang, now)}</p>
           <h1 className="truncate text-3xl leading-tight font-bold">{person.shown}</h1>
         </div>
+        <button
+          type="button"
+          aria-label={muted ? t("Sound off. Tap to turn on.", "आवाज़ बंद। चालू करने के लिए दबाएँ।", "Awaaz band. Chalu karne ke liye dabayein.") : t("Sound on. Tap to mute.", "आवाज़ चालू। बंद करने के लिए दबाएँ।", "Awaaz chalu. Band karne ke liye dabayein.")}
+          onClick={() => {
+            setMuted(!muted);
+            setMutedState(!muted);
+            if (muted) void speak(next ? nextLine : timeLine, voice);
+          }}
+          className={`flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-[#232326] ${muted ? "bg-[#f08a7e]" : "bg-card"}`}
+        >
+          {muted ? <VolumeX className="size-7" aria-hidden /> : <Volume2 className="size-7" aria-hidden />}
+        </button>
         <button
           type="button"
           aria-label={t("Helper", "मददगार", "Helper")}
@@ -206,6 +236,8 @@ export function EasyHome({ person }: { person: Person }) {
             </p>
             <p className="mt-1 text-3xl leading-tight font-bold">{(snoozed && due.length > 0 ? due[0] : next!).reminder.title}</p>
             <p className="text-2xl font-bold">{clockIn(lang, (snoozed && due.length > 0 ? due[0] : next!).time)}</p>
+            {/* The strip to look for, before it is even time. */}
+            <StripPictures medicine={(snoozed && due.length > 0 ? due[0] : next!).reminder.title} className="mt-3" />
           </section>
         ) : (
           <section className="rounded-3xl border-[3px] border-dashed border-[#232326] p-6 text-center">
@@ -238,6 +270,9 @@ export function EasyHome({ person }: { person: Person }) {
             {error}
           </p>
         ) : null}
+
+        {/* Her voice, for the family: "the white tablets are finished", "call me". */}
+        <RecordMessage from={person.name} />
 
         {person.helperNumber ? (
           <a

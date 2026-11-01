@@ -68,6 +68,7 @@ public class CallScreenPlugin extends Plugin {
     intent.putExtra("key", call.getString("key", ""));
     intent.putExtra("date", call.getString("date", ""));
     intent.putExtra("lang", call.getString("lang", "hi"));
+    intent.putExtra("photo", call.getString("photo", ""));
     return intent;
   }
 

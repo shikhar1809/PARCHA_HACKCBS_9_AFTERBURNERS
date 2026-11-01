@@ -5,6 +5,14 @@ import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.MediaRecorder;
+import android.util.Base64;
+import android.widget.ImageView;
+import java.io.File;
+import java.io.FileInputStream;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.Ringtone;
@@ -33,7 +41,9 @@ import java.util.Locale;
  * everybody answers a ringing phone. So a dose that falls due does not arrive
  * as a line in the notification tray: it takes the whole screen, over the lock
  * screen, with the phone ringing and buzzing, and the medicine said out loud
- * in her own language. Two buttons, and no way to miss it.
+ * in her own language. Three answers, and no way to miss it: taken, not
+ * taken (asked again in thirty minutes), or a few seconds of her voice for the
+ * family: "the tablets are finished", "I feel dizzy", "call me".
  *
  * It is not a telephone call, and nothing here pretends otherwise — it is this
  * phone's own alarm wearing a call's clothes. That is a deliberate trade: no
@@ -57,6 +67,16 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
   private TextToSpeech speaker;
   private String spoken;
   private String language = "hi";
+  private static final int MIC = 7;
+  private static final int MAX_SECONDS = 30;
+  private MediaRecorder recorder;
+  private File clip;
+  private long recordingSince;
+  private String key = "";
+  private String date = "";
+  private String person = "";
+  private Button recordButton;
+  private TextView recordNote;
 
   @Override
   protected void onCreate(Bundle saved) {
@@ -80,11 +100,11 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
 
     Intent from = getIntent();
     final String title = text(from, "title", "Your medicine");
-    final String person = text(from, "person", "");
+    person = text(from, "person", "");
     final String detail = text(from, "detail", "");
     final String time = text(from, "time", "");
-    final String key = text(from, "key", "");
-    final String date = text(from, "date", "");
+    key = text(from, "key", "");
+    date = text(from, "date", "");
     language = text(from, "lang", "hi");
 
     ((TextView) findViewById(R.id.call_who)).setText(person.isEmpty() ? title : person);
@@ -95,10 +115,30 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
     sub.setVisibility(under.isEmpty() ? View.GONE : View.VISIBLE);
     ((TextView) findViewById(R.id.call_from)).setText(label("Parcha · medicine reminder", "पर्चा · दवा का रिमाइंडर"));
 
+    // The strip, if the app sent its photo: the picture is what she knows.
+    String photo = text(from, "photo", "");
+    if (!photo.isEmpty()) {
+      try {
+        byte[] bytes = Base64.decode(photo.substring(photo.indexOf(',') + 1), Base64.DEFAULT);
+        Bitmap strip = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        if (strip != null) {
+          ImageView view = findViewById(R.id.call_strip);
+          view.setImageBitmap(strip);
+          view.setVisibility(View.VISIBLE);
+        }
+      } catch (Exception ignored) {
+        /* no picture is better than a broken one */
+      }
+    }
+
     Button taken = findViewById(R.id.call_taken);
     Button later = findViewById(R.id.call_later);
-    taken.setText(label("Taken", "ले ली"));
-    later.setText(label("Later", "बाद में"));
+    recordButton = findViewById(R.id.call_record);
+    recordNote = findViewById(R.id.call_record_note);
+    taken.setText(label("Yes, taken", "हाँ, ले ली"));
+    later.setText(label("No, not taken", "नहीं ली"));
+    recordButton.setText(label("Record a message", "संदेश रिकॉर्ड करें"));
+    recordNote.setText(label("For the family. Not an emergency call.", "परिवार के लिए। यह आपातकालीन कॉल नहीं है।"));
 
     spoken = said(title, person);
 
@@ -106,7 +146,102 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
     speaker = new TextToSpeech(this, this);
 
     taken.setOnClickListener(v -> answer(key, date, "taken"));
-    later.setOnClickListener(v -> answer(key, date, "snoozed"));
+    later.setOnClickListener(v -> answer(key, date, "not_taken"));
+    recordButton.setOnClickListener(v -> {
+      if (recorder != null) stopRecording();
+      else if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startRecording();
+      else requestPermissions(new String[] {android.Manifest.permission.RECORD_AUDIO}, MIC);
+    });
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+    super.onRequestPermissionsResult(code, permissions, results);
+    if (code != MIC) return;
+    if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) startRecording();
+    else recordNote.setText(label("Parcha may not use the microphone. Allow it in settings.", "Parcha को माइक की इजाज़त नहीं है। सेटिंग में दें।"));
+  }
+
+  /** Quiet first (the ring and the voice would be recorded over her), then up to thirty seconds. */
+  private void startRecording() {
+    silence();
+    try {
+      clip = new File(getCacheDir(), "message-" + System.currentTimeMillis() + ".m4a");
+      recorder = new MediaRecorder();
+      recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+      recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+      recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+      recorder.setAudioSamplingRate(16000);
+      recorder.setAudioChannels(1);
+      recorder.setAudioEncodingBitRate(24000);
+      recorder.setMaxDuration(MAX_SECONDS * 1000);
+      recorder.setOutputFile(clip.getAbsolutePath());
+      recorder.setOnInfoListener((r, what, extra) -> {
+        if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) stopRecording();
+      });
+      recorder.prepare();
+      recorder.start();
+      recordingSince = System.currentTimeMillis();
+      recordButton.setText(label("Stop and keep the message", "रोकें और संदेश रखें"));
+      recordButton.setBackgroundColor(0xFFB3261E);
+      recordNote.setText(label("Speak now. Up to 30 seconds.", "अब बोलिए। 30 सेकंड तक।"));
+    } catch (Exception e) {
+      recorder = null;
+      recordNote.setText(label("The microphone could not start.", "माइक शुरू नहीं हो पाया।"));
+    }
+  }
+
+  /** Kept on this phone with the answers; the app sends it to the family when it next opens. */
+  private void stopRecording() {
+    if (recorder == null) return;
+    int seconds = (int) Math.max(1, (System.currentTimeMillis() - recordingSince) / 1000);
+    try {
+      recorder.stop();
+    } catch (Exception ignored) {
+      /* too short to keep */
+    }
+    recorder.release();
+    recorder = null;
+    try {
+      byte[] bytes = new byte[(int) clip.length()];
+      try (FileInputStream in = new FileInputStream(clip)) {
+        int read = 0;
+        while (read < bytes.length) {
+          int n = in.read(bytes, read, bytes.length - read);
+          if (n < 0) break;
+          read += n;
+        }
+      }
+      clip.delete();
+      if (bytes.length < 800) throw new Exception("empty");
+      JSONObject row = new JSONObject();
+      row.put("key", key);
+      row.put("date", date);
+      row.put("outcome", "message");
+      row.put("person", person);
+      row.put("seconds", seconds);
+      row.put("id", "m_" + System.currentTimeMillis());
+      row.put("audio", "data:audio/mp4;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP));
+      row.put("at", System.currentTimeMillis());
+      queue(row);
+      recordButton.setText(label("Message kept", "संदेश रख लिया"));
+      recordButton.setEnabled(false);
+      recordButton.setBackgroundColor(0xFF6B5B52);
+      recordNote.setText(label("The family will hear it. Now: did you take the medicine?", "परिवार इसे सुनेगा। अब बताइए: दवा ली?"));
+    } catch (Exception e) {
+      recordNote.setText(label("Nothing was recorded. Try again.", "कुछ रिकॉर्ड नहीं हुआ। फिर कोशिश करें।"));
+      recordButton.setText(label("Record a message", "संदेश रिकॉर्ड करें"));
+      recordButton.setBackgroundColor(0xFFFF7F5A);
+    }
+  }
+
+  private void silence() {
+    try {
+      if (ringtone != null && ringtone.isPlaying()) ringtone.stop();
+      if (vibrator != null) vibrator.cancel();
+      if (speaker != null) speaker.stop();
+    } catch (Exception ignored) {
+    }
   }
 
   private String text(Intent i, String name, String fallback) {
@@ -119,16 +254,37 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
   }
 
   /**
-   * What the phone says out loud. One sentence, then the medicine — the same
-   * words the telephone call uses, so a family hears the same thing whichever
-   * way the reminder reaches them. Nothing is asked and nothing is answered
-   * by voice: the two buttons are the conversation.
+   * What the phone says out loud: one sentence, and not the medicine's name.
+   * A drug name read by a phone is noise to her; the strip on the screen says
+   * which one. Nothing is asked and nothing is answered by voice: the buttons
+   * are the conversation.
    */
   private String said(String title, String person) {
     if ("hi".equals(language)) {
-      return "आपकी दवाई का समय हो गया। " + title + "।";
+      return "आपकी दवाई का समय हो गया है।";
     }
-    return "It is time for your medicine. " + title + ".";
+    return "It is time for your medicine.";
+  }
+
+  /** A woman's voice in the language, where the phone has one; otherwise its default. */
+  private void preferFemaleVoice(Locale want) {
+    try {
+      android.speech.tts.Voice best = null;
+      for (android.speech.tts.Voice v : speaker.getVoices()) {
+        if (!v.getLocale().getLanguage().equals(want.getLanguage())) continue;
+        String name = v.getName().toLowerCase(Locale.ROOT);
+        boolean female = name.contains("female") || name.contains("-hia") || name.contains("-hic") || name.contains("x-iol") || name.contains("x-ahp");
+        boolean local = !v.isNetworkConnectionRequired();
+        if (female && local) {
+          best = v;
+          break;
+        }
+        if (female && best == null) best = v;
+      }
+      if (best != null) speaker.setVoice(best);
+    } catch (Exception ignored) {
+      /* the default voice still speaks */
+    }
   }
 
   /** The phone's own ringtone and a long buzz, the way a call arrives. */
@@ -172,6 +328,8 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
       // A phone with no Hindi voice says it in English rather than nothing.
       if (ok == TextToSpeech.LANG_MISSING_DATA || ok == TextToSpeech.LANG_NOT_SUPPORTED) {
         speaker.setLanguage(Locale.ENGLISH);
+      } else {
+        preferFemaleVoice(want);
       }
       // After the first rings, the way a voice comes on once the call connects.
       new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -191,29 +349,42 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
    * an answer is worse than one that arrives late.
    */
   private void answer(String key, String date, String outcome) {
+    // A message half-recorded is kept, not lost, when she answers mid-way.
+    if (recorder != null) stopRecording();
     try {
-      SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-      JSONArray queue;
-      try {
-        queue = new JSONArray(prefs.getString(PENDING, "[]"));
-      } catch (Exception e) {
-        queue = new JSONArray();
-      }
       JSONObject row = new JSONObject();
       row.put("key", key);
       row.put("date", date);
       row.put("outcome", outcome);
       row.put("at", System.currentTimeMillis());
-      queue.put(row);
-      prefs.edit().putString(PENDING, queue.toString()).apply();
+      queue(row);
     } catch (Exception ignored) {
       /* storage refused: the dose can still be ticked in the app */
     }
     finish();
   }
 
+  private void queue(JSONObject row) {
+    SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    JSONArray queue;
+    try {
+      queue = new JSONArray(prefs.getString(PENDING, "[]"));
+    } catch (Exception e) {
+      queue = new JSONArray();
+    }
+    queue.put(row);
+    prefs.edit().putString(PENDING, queue.toString()).commit();
+  }
+
   @Override
   protected void onDestroy() {
+    if (recorder != null) {
+      try {
+        recorder.release();
+      } catch (Exception ignored) {
+      }
+      recorder = null;
+    }
     try {
       if (ringtone != null && ringtone.isPlaying()) ringtone.stop();
     } catch (Exception ignored) {
@@ -235,6 +406,6 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
   /** The back button does not dismiss a dose silently; Later is an answer. */
   @Override
   public void onBackPressed() {
-    // Deliberately empty: the two buttons are the way out.
+    // Deliberately empty: the answers are the way out.
   }
 }
