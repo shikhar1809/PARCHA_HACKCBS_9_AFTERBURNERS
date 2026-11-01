@@ -400,9 +400,6 @@ export type VisitRequest = {
   preferredDate: string;
 };
 
-export const requestVisit = (input: VisitRequest) =>
-  call<VisitRequest, { visitId: string; repeated?: boolean }>("requestVisit", input);
-
 /** What a front desk can change about a visit that has not happened yet. */
 export const controlVisit = (
   input:
@@ -416,54 +413,8 @@ export const controlVisit = (
 export const setBringReady = (visitId: string, ready: string[]) =>
   call<{ visitId: string; ready: string[] }, { ok: true }>("setBringReady", { visitId, ready });
 
-/** Called by the patient's phone when a hospital has run out of time. A no-op if it has not. */
-export const escalateRequest = (visitId: string) =>
-  call<{ visitId: string }, { moved: boolean; to: string | null; exhausted: boolean }>(
-    "escalateRequest",
-    { visitId },
-  );
-
-/** The desk passes a request on to the next hospital instead of letting the clock run out. */
-export const passOnRequest = (visitId: string, reason: string) =>
-  call<{ visitId: string; reason: string }, { moved: boolean; to: string | null; exhausted: boolean }>(
-    "passOnRequest",
-    { visitId, reason },
-  );
-
-/** The patient's word on a visit, after the consultation. */
-export const rateVisit = (visitId: string, stars: number, tags: string[], note?: string) =>
-  call<{ visitId: string; stars: number; tags: string[]; note?: string }, { ok: true }>("rateVisit", { visitId, stars, tags, note });
-
-export const cancelMyRequest = (visitId: string) =>
-  call<{ visitId: string }, { ok: true }>("cancelMyRequest", { visitId });
-
-/** The desk books a request itself: doctor, day and time, and the patient is told. */
-export const bookRequest = (visitId: string, doctorUid: string, day: string, time: string) =>
-  call<object, { ok: true }>("bookRequest", { visitId, doctorUid, day, time });
-
-export const proposeVisit = (visitId: string, doctorUid: string) =>
-  call<{ visitId: string; doctorUid: string }, { ok: true }>("proposeVisit", {
-    visitId,
-    doctorUid,
-  });
-
-export const withdrawProposal = (visitId: string) =>
-  call<{ visitId: string }, { ok: true }>("withdrawProposal", { visitId });
-
-export const cancelVisitRequest = (visitId: string, reason: string) =>
-  call<{ visitId: string; reason: string }, { ok: true }>(
-    "cancelVisitRequest",
-    { visitId, reason },
-  );
-
 export const checkInVisit = (visitId: string) =>
   call<{ visitId: string }, { ok: true }>("checkInVisit", { visitId });
-
-export const respondToRequest = (
-  input:
-    | { visitId: string; accept: true; day: string; time: string }
-    | { visitId: string; accept: false; reason: string },
-) => call<typeof input, { ok: true }>("respondToRequest", input);
 
 export const setAvailability = (status: Availability) =>
   call<{ status: Availability }, { ok: true }>("setAvailability", { status });
