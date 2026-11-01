@@ -17,6 +17,7 @@ export { BodyMap, type BodyView } from "./body-map";
 export { Splash, useFontsReady, useMinTime } from "./splash";
 export { BringIcon } from "./bring-icon";
 export {
+  Qr,
   PrescriptionSheet,
   TokenSlip,
   printPrescription,
