@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
  * English letters, the way most people text).
  *
  * The phone has one choice, and each person on a shared phone can have their
- * own (Dadi in Hindi, Sunita in Hinglish); the person using the phone wins.
+ * own (Dadi in Hindi, Priya in Hinglish); the person using the phone wins.
  * Text is written where it is used, in all three: t("Book a visit",
  * "विज़िट बुक करें", "Visit book karein"), so a screen reads as one piece in
  * every language and nothing is left untranslated by accident.
