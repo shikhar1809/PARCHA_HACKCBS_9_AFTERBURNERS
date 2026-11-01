@@ -40,6 +40,8 @@ import {
 } from "../../../packages/core/src/calls.js";
 import type { Reminder } from "../../../packages/core/src/schedule.js";
 import { profileId } from "../../../packages/core/src/profile.js";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
+
 import { db, rateLimit, requirePatientPhone, requireString, tenDigits } from "./guards.js";
 import { assertOnThisPhone } from "./records.js";
 
@@ -245,6 +247,9 @@ export const simulateCallOutcome = onCall(async (request) => {
 
 /* ---------------------------------------------------------------- dispatcher */
 
+/** How many accounts are read at a time while walking every enabled account. */
+const DISPATCH_PAGE = 300;
+
 export async function runDispatcher(): Promise<{ placed: number; retried: number; expired: number }> {
   const { date, local } = indiaNow();
   const nowIso = iso();
@@ -253,8 +258,21 @@ export async function runDispatcher(): Promise<{ placed: number; retried: number
   let expired = 0;
 
   // 1. First calls: everyone who has switched calls on.
-  const settings = await db().collection("callSettings").where("enabled", "==", true).limit(500).get();
-  for (const s of settings.docs) {
+  //
+  // Paged by document id rather than capped, because a cap is not a cap: with
+  // more than a page of accounts the ones past the end are never looked at,
+  // and nobody finds out — their phone simply does not ring. The id order is
+  // stable, so the cursor walks the whole set exactly once per run.
+  const everyone: QueryDocumentSnapshot[] = [];
+  for (let after: QueryDocumentSnapshot | null = null; ; ) {
+    let q = db().collection("callSettings").where("enabled", "==", true).orderBy("__name__").limit(DISPATCH_PAGE);
+    if (after) q = q.startAfter(after);
+    const page = await q.get();
+    everyone.push(...page.docs);
+    if (page.size < DISPATCH_PAGE) break;
+    after = page.docs[page.size - 1];
+  }
+  for (const s of everyone) {
     const cfg = s.data();
     const phone = s.id;
     const reminders = (await db().collection("reminders").where("ownerPhone", "==", phone).get()).docs.map(
