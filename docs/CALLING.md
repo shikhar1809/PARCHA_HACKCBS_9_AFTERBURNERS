@@ -4,10 +4,17 @@ An older patient may not read a screen or feel a buzz in a pocket, but answers
 a phone. When a patient switches calls on, Parcha phones their number at the
 time of each medicine, says what to take, and asks for one key press.
 
-> **Status.** The whole loop runs end to end in the emulator on a **demo phone
-> line** (no real call is placed; the app shows buttons for the key presses).
+> **Status.** The whole loop is covered end to end by an integration test on a
+> **demo phone line**: a dose falls due, the dispatcher places the call to the
+> number that signed in, the script names the medicine, pressing 1 ticks the
+> dose, and the next run does not call about it again. No real call is placed.
 > The **Twilio adapter is written but has not been tried against a live
-> account** in this repository. Treat it as ready to test, not as proven.
+> account**. Everything above it is proven; the telephone itself is not.
+>
+> On the live project the provider is still `mock`, so `callWebhook` answers
+> 404 by design and no real call can be placed until the variables below are
+> set. Its address, for `TWILIO_WEBHOOK_URL`, is
+> `https://asia-south1-parcha-101.cloudfunctions.net/callWebhook`.
 
 ## What a call is
 
@@ -22,7 +29,7 @@ time of each medicine, says what to take, and asks for one key press.
   that varies.
 
 > "Hello, this is Parcha with your medicine reminder. It is 2 pm. It is time to
-> take for Ramesh: Paracetamol and Metformin. If you have taken it, press 1. To
+> take for Prashant: Paracetamol and Metformin. If you have taken it, press 1. To
 > be reminded again in ten minutes, press 2. Thank you."
 
 | Press | What happens |
@@ -108,5 +115,8 @@ in its console.
    among young urban HIV patients ([source](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3428344/));
    there is little for older people on chronic medicines. Measure doses taken
    with and without calls in a pilot before claiming an effect.
-4. **Dispatcher scale.** It reads up to 500 opted-in phones a run. Past that it
-   needs to be sharded by phone number.
+4. **Dispatcher scale.** It walks every opted-in phone, paging by document id
+   (300 a page), because a cap is not a cap: with more accounts than the cap,
+   the ones past the end were never looked at and nobody found out — their
+   phone simply did not ring. Per-account reads and call placement are still
+   sequential inside one scheduled run, which is the next thing to shard.
