@@ -8,7 +8,7 @@ Branch `patient-app-first`; `main` on GitHub (`shikhar1809/check`) = `a7d6e0a`, 
 
 ## The task in flight (NOT committed, NOT tested)
 
-The user asked: make the add-Parcha flow after Yes/No follow **RapidRX's workflow** (github.com/shikharshahi/RapidRX-Hack-E-Awadh, Flutter, cloned for reference in the scratchpad — read `lib/features/wizard/*`, `docs/DECISIONS.md` ADR-29/31/35). Same workflow, **not a copy of its code**:
+The add-Parcha flow after Yes/No follows the wizard workflow below, written from scratch:
 
 > prescription + bill → doctor recording + verification (skippable) → pharmacist recording + verification (required if doctor skipped) → strip photos front/back → plan: merge everything, prompt to add to the schedule, check clashes → **then test on the tablet**.
 

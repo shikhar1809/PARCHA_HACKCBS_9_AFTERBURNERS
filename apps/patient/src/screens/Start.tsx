@@ -3,9 +3,9 @@
  * starts here: "Do you have a printed Parcha?"
  *
  * Yes: scan the code on it, and the medicines come in exactly as the doctor
- * wrote them. No: check the medicines from the bill and what the doctor said
- * (the RapidRX way). Either way the person ends with reminders. Anyone who just
- * wants their medicines or to ask for a visit goes straight to their home.
+ * wrote them. No: check the medicines from the bill and what the doctor said.
+ * Either way the person ends with reminders. Anyone who just wants their
+ * medicines or to ask for a visit goes straight to their home.
  */
 import { Screen } from "@parcha/ui";
 import { Camera, ChevronLeft, FileX2 } from "lucide-react";

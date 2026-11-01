@@ -344,7 +344,7 @@ const AUDIO_MODELS = ["gemini-3.5-flash-lite", "gemini-3.5-flash"];
 /**
  * What the doctor (or the chemist) said, as words and as medicines.
  *
- * The same shape RapidRX's wizard checks point by point: each medicine with
+ * The same shape the wizard checks point by point: each medicine with
  * when, food and how long — and each of those only if it was actually said.
  * A field left out is "not said", and the person sees it as that; nothing is
  * filled in to make a row look complete. It is a transcript, not a judge:

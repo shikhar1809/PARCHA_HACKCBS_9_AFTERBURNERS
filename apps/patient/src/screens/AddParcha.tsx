@@ -1,5 +1,5 @@
 /**
- * Adding a Parcha, the RapidRX way: every source the family has, each checked
+ * Adding a Parcha: every source the family has, each checked
  * by a person, then one plan.
  *
  *   1. Papers     — the prescription and the pharmacy bill, photographed. A

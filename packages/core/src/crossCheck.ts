@@ -1,5 +1,5 @@
 /**
- * Checking medicines when there is no printed Parcha (the RapidRX idea).
+ * Checking medicines when there is no printed Parcha.
  *
  * Two sources are lined up: the medicines on the pharmacy bill (printed, so
  * the names are reliable) and what the doctor or chemist said (the authority

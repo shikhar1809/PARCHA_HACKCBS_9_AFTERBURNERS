@@ -6,7 +6,7 @@
  * photograph is not signed, so nothing read off it counts until the person has
  * confirmed it against the paper.
  *
- * No printed Parcha (RapidRX's way): a handwritten prescription cannot be
+ * No printed Parcha: a handwritten prescription cannot be
  * trusted to be read right, so the app does not bet on it. It lines up two
  * sources instead: the medicines on the pharmacy bill (printed, so the names
  * are reliable) and what the doctor or chemist said (the authority on when to
