@@ -756,24 +756,7 @@ export const sendFollowUpReminder = onCall(async (request) => {
 
 export { seedDemoData } from "./seed.js";
 export { demoPhoneSignIn, demoStaffSignIn, startNewClinic } from "./demo.js";
-export {
-  controlVisit,
-  setBringReady,
-  escalateRequest,
-  passOnRequest,
-  sweepOverdueRequests,
-  moveOverdueRequests,
-  cancelMyRequest,
-  rateVisit,
-  cancelVisitRequest,
-  checkInVisit,
-  proposeVisit,
-  bookRequest,
-  requestVisit,
-  respondToRequest,
-  setAvailability,
-  withdrawProposal,
-} from "./previsit.js";
+export { controlVisit, setBringReady, checkInVisit, setAvailability } from "./previsit.js";
 export { addDocument, deleteDocument, saveHistory } from "./records.js";
 export { deleteReminder, markDose, saveReminders } from "./reminders.js";
 export { deleteProfile, saveProfile } from "./profiles.js";
@@ -816,3 +799,18 @@ export { startStaffSession, sessionBeat, endStaffSession } from "./session.js";
 export { setAccessNeeds } from "./access.js";
 export { sweepExpired } from "./sweep.js";
 export { dispensePrescription, recordBill } from "./counter.js";
+export { shareHistory, openShare, shareIsOpen, revokeShare, reportShareFailure, myShares } from "./share.js";
+
+// The voice pad's learning. Nothing here is on the signing path: a Meko
+// outage degrades recall and can never block a prescription.
+//
+// NOT DEPLOYED. These declare `defineSecret("MEKO_API_KEY")`, and a secret is
+// resolved while the CLI analyses the codebase — before a single function is
+// built. On a project without the Secret Manager API enabled that analysis
+// fails, and it fails for EVERY function, not only these: one unused feature
+// took the whole backend down with it. Meko is off by default and its recall
+// is not wired yet, so the export is parked rather than the deploy.
+//
+// To put it back: enable Secret Manager on the project, set both secrets, and
+// uncomment the line below.
+// export { mekoRecall, mekoRemember, mekoForget, mekoReview, mekoPromote, mekoCurate } from "./mekoCallables.js";
