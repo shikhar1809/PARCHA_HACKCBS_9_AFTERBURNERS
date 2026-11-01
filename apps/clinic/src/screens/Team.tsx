@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 
 import { useIdentity } from "../auth";
 import { Btn, Card } from "../bits";
-import { useNow } from "./Sla";
+import { useNow } from "../clock";
 import { problemFor } from "./team/geometry";
 import { Wiring } from "./team/Wiring";
 

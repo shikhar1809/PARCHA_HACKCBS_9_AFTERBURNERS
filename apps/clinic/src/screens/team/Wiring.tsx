@@ -3,7 +3,7 @@ import { isOnDuty, type Account, type Route } from "@parcha/core";
 import { cn } from "@parcha/ui";
 import { AlertTriangle, Unplug } from "lucide-react";
 import { useIdentity } from "../../auth";
-import { useNow } from "../Sla";
+import { useNow } from "../../clock";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
