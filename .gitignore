@@ -81,6 +81,9 @@ dev-dist/
 !.env.parcha-101
 apps/downloads/dist/
 firebase/functions/.env*
+# Where the emulator reads defineSecret() values from. Holds the Meko API key
+# and the scope salt, so it must never be committed.
+firebase/functions/.secret.local
 live-accounts.local.txt
 *.tmp
 *.tmp.*
