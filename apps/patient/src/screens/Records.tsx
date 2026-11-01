@@ -1,4 +1,4 @@
-import { saveHistory, errorMessage, useDocuments, useHistories, useVisitsForPhone } from "@parcha/client";
+import { saveHistory, errorMessage, useDocuments, useHistories } from "@parcha/client";
 import type { PatientDocument, PatientHistory } from "@parcha/core";
 import { Screen } from "@parcha/ui";
 import { Check, Loader2, Plus } from "lucide-react";
@@ -54,13 +54,12 @@ export function Records() {
   const t = useT();
   const { handset } = useHandset();
   const phone = handset?.phone ?? null;
-  const visits = useVisitsForPhone(phone);
   const docs = useDocuments(phone);
   const histories = useHistories(phone);
 
   const people = useMemo(
-    () => [...new Set([...visits.data.map((v) => v.patientName), ...histories.data.map((h) => h.personName), ...docs.data.map((d) => d.personName)])],
-    [visits.data, histories.data, docs.data],
+    () => [...new Set([...histories.data.map((h) => h.personName), ...docs.data.map((d) => d.personName)])],
+    [histories.data, docs.data],
   );
   const { active } = usePeople();
   const [picked, setChosen] = useState<string | null>(null);
@@ -112,7 +111,7 @@ export function Records() {
             <p className="max-w-72 text-lg">{t("Your records will appear here after your first visit.", "पहली विज़िट के बाद आपके काग़ज़ यहाँ दिखेंगे।", "Pehli visit ke baad aapke kagaz yahan dikhenge.")}</p>
           </div>
         ) : tab === "parchas" ? (
-          <ParchaList person={person} visits={visits.data.filter((v) => v.patientName === person)} />
+          <ParchaList person={person} />
         ) : (
           <Papers person={person} docs={docs.data.filter((d) => d.personName === person)} loading={docs.loading} error={docs.error} />
         )}
