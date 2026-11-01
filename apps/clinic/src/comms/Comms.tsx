@@ -49,7 +49,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useIdentity, type Identity } from "../auth";
 import { useVoice, type VoiceLang } from "./useVoice";
@@ -90,7 +90,10 @@ function dayLabel(iso: string) {
  */
 export function CommsDock() {
   const { identity } = useIdentity();
-  if (!identity) return null;
+  const { pathname } = useLocation();
+  // The waiting-room kiosk faces the patients. The team's own messages, and
+  // the patients they name, are not for that screen.
+  if (!identity || /^\/kiosk\/?$/.test(pathname)) return null;
   return <Dock me={identity} />;
 }
 
@@ -748,7 +751,7 @@ function RefChip({ tag }: { tag: CommsTag }) {
   );
 }
 
-/** "Active prescription #12 · Sunita Devi", "Visit #12 · Sunita Devi": what a chip says. */
+/** "Active prescription #12 · Priya", "Visit #12 · Priya": what a chip says. */
 function tagsFor(v: Visit): CommsTag[] {
   const token = v.tokenNumber ? ` #${v.tokenNumber}` : "";
   const out: CommsTag[] = [{ label: `Visit${token} · ${v.patientName}`, ref: { kind: "visit", visitId: v.id } }];
