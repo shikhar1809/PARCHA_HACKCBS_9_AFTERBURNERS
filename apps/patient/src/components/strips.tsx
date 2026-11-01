@@ -19,10 +19,17 @@ import { useT } from "../i18n";
 import { PhotoCrop } from "./PhotoCrop";
 import { readText } from "./readText";
 
-export type Strip = { front?: string; back?: string };
+export type Strip = {
+  front?: string;
+  back?: string;
+  /** A drawn picture on the demo phone, not a photo of this family's strip (see demoStrips). */
+  sample?: boolean;
+};
 
 const keyFor = (medicine: string) => `strip:${medicine.trim().toLowerCase()}`;
 const listeners = new Set<() => void>();
+/** Tells every picture on screen to read its strip again. */
+export const notifyStrips = () => listeners.forEach((l) => l());
 
 /** A photo as a small JPEG data URL: about 60 KB, enough to recognise a strip. */
 export async function shrinkPhoto(file: File, max = 640): Promise<string> {
@@ -42,7 +49,13 @@ export function useStrip(medicine: string | null | undefined): Strip | null {
     setStrip(null);
     if (!medicine) return;
     let live = true;
-    const load = () => void vaultGet<Strip>(keyFor(medicine)).then((s) => live && setStrip(s ?? null));
+    // "Metformin 500 mg" on a reminder and "Metformin" on a Parcha are the same
+    // strip: the exact name first, then the name without its strength.
+    const bare = medicine.replace(/\s+\d[\d.]*\s*(mg|mcg|g|ml|iu|%)?.*$/i, "").trim();
+    const load = () =>
+      void vaultGet<Strip>(keyFor(medicine))
+        .then(async (s) => s ?? (bare && bare !== medicine ? await vaultGet<Strip>(keyFor(bare)) : null))
+        .then((s) => live && setStrip(s ?? null));
     load();
     listeners.add(load);
     return () => {
@@ -55,19 +68,29 @@ export function useStrip(medicine: string | null | undefined): Strip | null {
 
 export async function saveStripSide(medicine: string, side: "front" | "back", file: File) {
   const now = (await vaultGet<Strip>(keyFor(medicine))) ?? {};
-  await vaultPut(keyFor(medicine), { ...now, [side]: await shrinkPhoto(file) });
+  // A real photo replaces a sample drawing outright: half a drawing is not kept beside it.
+  const kept: Strip = now.sample ? {} : now;
+  await vaultPut(keyFor(medicine), { ...kept, [side]: await shrinkPhoto(file), sample: false });
   listeners.forEach((l) => l());
 }
 
 /** The two pictures, side by side, as big as the screen allows. */
 export function StripPictures({ medicine, className }: { medicine: string; className?: string }) {
   const strip = useStrip(medicine);
+  const t = useT();
   if (!strip?.front && !strip?.back) return null;
   return (
-    <div className={`grid grid-cols-2 gap-2 ${className ?? ""}`}>
-      {[strip.front, strip.back].map((src, i) =>
-        src ? <img key={i} src={src} alt="" className="aspect-[4/3] w-full rounded-xl border-2 border-[#232326] object-cover" /> : <span key={i} />,
-      )}
+    <div className={className}>
+      <div className="grid grid-cols-2 gap-2">
+        {[strip.front, strip.back].map((src, i) =>
+          src ? <img key={i} src={src} alt="" className="aspect-[4/3] w-full rounded-xl border-2 border-[#232326] object-cover" /> : <span key={i} />,
+        )}
+      </div>
+      {strip.sample ? (
+        <p className="mt-1 text-sm font-bold">
+          {t("Sample picture — photograph your own strip in Medicines.", "नमूना तस्वीर — अपने पत्ते की फ़ोटो दवाइयों में लें।", "Namuna tasveer — apne patte ki photo Medicines mein lein.")}
+        </p>
+      ) : null}
     </div>
   );
 }

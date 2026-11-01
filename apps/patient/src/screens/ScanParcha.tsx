@@ -45,7 +45,7 @@ export function ScanParcha() {
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
-  const { people, active } = usePeople();
+  const { people, active, openPicker } = usePeople();
   const { handset } = useHandset();
   const [step, setStep] = useState<Step>("scan");
   const [read, setRead] = useState<RxRead | null>(null);
@@ -74,10 +74,15 @@ export function ScanParcha() {
   // "Who is it for?" is skipped only when the slip names the person already
   // chosen on the phone; a slip for someone else is never quietly theirs.
   const askWho = !active || !named || named.name !== active;
-  const someoneElse = !!active && !!rx && !(named && named.name === active);
+  // With someone chosen on the phone, the medicines can only be theirs. A slip
+  // naming another person on this phone is theirs to add, from their own name;
+  // a name the phone does not know is asked about, never assumed.
+  const forOther = !!active && !!named && named.name !== active;
+  const unknownName = !!active && !!rx && !named;
+  const choices = active ? people.filter((p) => p.name === active) : people;
   useEffect(() => {
-    if (rx && !who) setWho(named?.name ?? (!active && people.length === 1 ? people[0].name : null));
-  }, [rx, people, who, named, active]);
+    if (rx && !who && !forOther) setWho(active ?? named?.name ?? (people.length === 1 ? people[0].name : null));
+  }, [rx, people, who, named, active, forOther]);
 
   const steps: Step[] = askWho ? ["scan", "check", "who", "strips"] : ["scan", "check", "strips"];
   const at = steps.indexOf(step);
@@ -247,34 +252,49 @@ export function ScanParcha() {
         {step === "who" ? (
           <>
             <p className="text-xl font-bold">{t("Who are these medicines for?", "ये दवाइयाँ किसकी हैं?", "Yeh dawaiyan kiski hain?")}</p>
-            {someoneElse && rx ? (
-              <p role="alert" className="rounded-2xl border-2 border-[#232326] bg-[var(--morning-soft)] p-3 text-base leading-snug font-bold">
-                {t(
-                  `This Parcha is for ${rx.p[0]}, not ${active}. Choose who takes these medicines. If they are not on this phone, add them in Me first.`,
-                  `यह पर्चा ${rx.p[0]} का है, ${active} का नहीं। चुनें कि ये दवाइयाँ कौन लेगा। अगर वे इस फ़ोन पर नहीं हैं, तो पहले "मैं" में जोड़ें।`,
-                  `Yeh Parcha ${rx.p[0]} ka hai, ${active} ka nahi. Chunein ki yeh dawaiyan kaun lega. Agar woh is phone par nahi hain, to pehle Me mein jodein.`,
-                )}
-              </p>
-            ) : null}
-            <div className="space-y-2.5" role="radiogroup">
-              {people.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  role="radio"
-                  aria-checked={who === p.name}
-                  onClick={() => setWho(p.name)}
-                  className={cn(
-                    "hover-orange flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 border-[var(--brand-deep)] px-4 text-left text-xl font-bold",
-                    who === p.name ? "bg-[var(--brand-soft)] shadow-[0_3px_0_var(--brand-deep)]" : "bg-card",
+            {forOther && rx ? (
+              <div role="alert" className="space-y-3 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-4">
+                <p className="text-lg leading-snug font-bold">
+                  {t(
+                    `This Parcha is for ${named?.shown ?? rx.p[0]}, not ${active}. Switch to ${named?.shown ?? rx.p[0]} to add it, so the reminders and strip photos are theirs.`,
+                    `यह पर्चा ${named?.shown ?? rx.p[0]} का है, ${active} का नहीं। इसे जोड़ने के लिए ${named?.shown ?? rx.p[0]} पर बदलें।`,
+                    `Yeh Parcha ${named?.shown ?? rx.p[0]} ka hai, ${active} ka nahi. Ise jodne ke liye ${named?.shown ?? rx.p[0]} par badlein.`,
                   )}
-                >
-                  {who === p.name ? <Check className="size-6" strokeWidth={3} aria-hidden /> : null}
-                  {p.shown}
-                </button>
-              ))}
-            </div>
-              <BigButton disabled={!who} onClick={() => setStep("strips")}>{t("Next", "आगे", "Aage")}</BigButton>
+                </p>
+                <BigButton onClick={openPicker}>{t("Switch person", "व्यक्ति बदलें", "Vyakti badlein")}</BigButton>
+              </div>
+            ) : (
+              <>
+                {unknownName && rx ? (
+                  <p role="alert" className="rounded-2xl border-2 border-[#232326] bg-[var(--morning-soft)] p-3 text-base leading-snug font-bold">
+                    {t(
+                      `The slip says ${rx.p[0]}. Add it to ${active} only if it is theirs.`,
+                      `पर्चे पर ${rx.p[0]} लिखा है। ${active} में तभी जोड़ें जब यह उन्हीं का हो।`,
+                      `Parche par ${rx.p[0]} likha hai. ${active} mein tabhi jodein jab yeh unhi ka ho.`,
+                    )}
+                  </p>
+                ) : null}
+                <div className="space-y-2.5" role="radiogroup">
+                  {choices.map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={who === p.name}
+                      onClick={() => setWho(p.name)}
+                      className={cn(
+                        "hover-orange flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 border-[var(--brand-deep)] px-4 text-left text-xl font-bold",
+                        who === p.name ? "bg-[var(--brand-soft)] shadow-[0_3px_0_var(--brand-deep)]" : "bg-card",
+                      )}
+                    >
+                      {who === p.name ? <Check className="size-6" strokeWidth={3} aria-hidden /> : null}
+                      {p.shown}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+              <BigButton disabled={!who || forOther} onClick={() => setStep("strips")}>{t("Next", "आगे", "Aage")}</BigButton>
           </>
         ) : null}
 
@@ -316,7 +336,10 @@ export function ScanParcha() {
             <p className="text-lg">
               {t(`${rx.m.length} medicine${rx.m.length === 1 ? "" : "s"} for ${who}. We will remind at each time.`, `${who} की ${rx.m.length} दवाइयाँ। हर समय पर याद दिलाएँगे।`, `${who} ki ${rx.m.length} dawaiyan. Har time par yaad dilaayenge.`)}
             </p>
-            <BigButton onClick={() => navigate("/schedule", { replace: true })}>{t("See today's medicines", "आज की दवाइयाँ देखें", "Aaj ki dawaiyan dekhein")}</BigButton>
+            <BigButton onClick={() => navigate(`/simple/${encodeURIComponent(`parcha:${rx.c}`)}`, { replace: true })}>{t("See my simple Parcha", "मेरा आसान पर्चा देखें", "Mera aasaan Parcha dekhein")}</BigButton>
+            <button type="button" onClick={() => navigate("/schedule", { replace: true })} className="min-h-12 w-full text-lg font-bold underline">
+              {t("See today's medicines", "आज की दवाइयाँ देखें", "Aaj ki dawaiyan dekhein")}
+            </button>
           </div>
         ) : null}
       </Screen>

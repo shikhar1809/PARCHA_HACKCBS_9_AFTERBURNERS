@@ -8,7 +8,7 @@
  */
 import { vaultGet, vaultKeys } from "@parcha/client";
 import { rxName, type RxPayload } from "@parcha/core";
-import { BadgeCheck, FilePlus2, Image as ImageIcon, ReceiptText } from "lucide-react";
+import { BadgeCheck, FilePlus2, Image as ImageIcon, ReceiptText, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,9 +26,9 @@ export type Checked = { person: string; medicines: { name: string; frequency: st
 /** A Parcha whose code would not read, kept as the picture it is. */
 export type Snap = { person: string; photo: string; savedAt: string };
 export type Row =
-  | { kind: "scanned"; at: string; slip: Scanned }
-  | { kind: "photo"; at: string; snap: Snap }
-  | { kind: "checked"; at: string; list: Checked };
+  | { kind: "scanned"; key: string; at: string; slip: Scanned }
+  | { kind: "photo"; key: string; at: string; snap: Snap }
+  | { kind: "checked"; key: string; at: string; list: Checked };
 
 /**
  * The Parcha kept on this phone for one visit, found by the code printed on
@@ -63,13 +63,13 @@ export function useKeptParchas(person: string) {
       for (const k of keys) {
         if (k.startsWith("parcha:")) {
           const s = await vaultGet<Scanned>(k);
-          if (s?.person === person) rows.push({ kind: "scanned", at: s.savedAt, slip: s });
+          if (s?.person === person) rows.push({ kind: "scanned", key: k, at: s.savedAt, slip: s });
         } else if (k.startsWith("slip:")) {
           const s = await vaultGet<Snap>(k);
-          if (s?.person === person) rows.push({ kind: "photo", at: s.savedAt, snap: s });
+          if (s?.person === person) rows.push({ kind: "photo", key: k, at: s.savedAt, snap: s });
         } else {
           const c = await vaultGet<Checked>(k);
-          if (c?.person === person) rows.push({ kind: "checked", at: c.savedAt, list: c });
+          if (c?.person === person) rows.push({ kind: "checked", key: k, at: c.savedAt, list: c });
         }
       }
       if (live) setKept(rows);
@@ -133,6 +133,7 @@ export function ParchaList({ person }: { person: string }) {
                     {p.h} · {p.d[0]} · {when}
                   </p>
                   <p className="mt-1 text-base font-bold">{p.m.map(([name, strength, form]) => rxName({ drugName: name, strength, form })).join(", ")}</p>
+                  <SimpleLink to={r.key} />
                 </li>
               );
             }
@@ -144,11 +145,27 @@ export function ParchaList({ person }: { person: string }) {
                 </p>
                 <p className="text-base">{when}</p>
                 <p className="mt-1 text-base font-bold">{r.list.medicines.map((m) => m.name).join(", ")}</p>
+                <SimpleLink to={r.key} />
               </li>
             );
           })}
         </ul>
       )}
     </div>
+  );
+}
+
+/** Opens the simple, picture-led version of a kept Parcha. */
+function SimpleLink({ to }: { to: string }) {
+  const t = useT();
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/simple/${encodeURIComponent(to)}`)}
+      className="mt-2.5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-[3px] border-[#232326] bg-white text-lg font-bold"
+    >
+      <Sparkles className="size-5" aria-hidden /> {t("Simple Parcha", "आसान पर्चा", "Aasaan Parcha")}
+    </button>
   );
 }

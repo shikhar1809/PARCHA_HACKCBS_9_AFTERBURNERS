@@ -10,6 +10,7 @@ import { clockIn, currentLang, tr, useLang, useT } from "../i18n";
 import { showDoseNotification } from "./notify";
 import { usePeople } from "./people";
 import { speak } from "./speak";
+import { useStrip } from "./strips";
 
 /** A clock that ticks, so "due now" and "late" stay true without a refresh. */
 export function useNow(everyMs = 1000): Date {
@@ -103,11 +104,15 @@ export function snoozeDose(key: string, date: string, minutes: number) {
 
 const snoozed = (date: string, key: string) => (deferrals()[`${date}|${key}`] ?? 0) > Date.now();
 
-/** The doses to ask about right now: due, not ticked, and not waiting on a follow-up. */
-export function dueNow(reminders: Reminder[], taken: Record<string, unknown>, now: Date): Dose[] {
+/**
+ * The doses to ask about right now: due, not ticked, and not waiting on a
+ * follow-up. With a person chosen on the phone, only theirs: on a shared phone
+ * Prashant must not be able to tick off Dadi's dose by tapping through cards.
+ */
+export function dueNow(reminders: Reminder[], taken: Record<string, unknown>, now: Date, person?: string | null): Dose[] {
   const today = toDateString(now);
   return dosesOn(reminders, today).filter(
-    (d) => d.reminder.kind === "medicine" && !(d.key in taken) && !snoozed(today, d.key) && minutesSince(d.time, now) >= 0 && minutesSince(d.time, now) < DUE_FOR_MINUTES,
+    (d) => d.reminder.kind === "medicine" && (!person || d.reminder.personName === person) && !(d.key in taken) && !snoozed(today, d.key) && minutesSince(d.time, now) >= 0 && minutesSince(d.time, now) < DUE_FOR_MINUTES,
   );
 }
 
@@ -139,11 +144,11 @@ export function DueAlerts() {
   const navigate = useNavigate();
   const onCards = useLocation().pathname === "/dose";
   const taken = log.data?.taken ?? {};
-  const due: Dose[] = on ? dueNow(reminders.data, taken, now) : [];
+  const { people, active } = usePeople();
+  const due: Dose[] = on ? dueNow(reminders.data, taken, now, active) : [];
   const first = due[0];
   // How this person takes a reminder: spoken for someone who cannot see well,
   // flashing and vibrating for someone who cannot hear.
-  const { people } = usePeople();
   const access = people.find((p) => p.name === first?.reminder.personName)?.access;
   const sayIt = first ? spokenReminder(first.reminder.personName, due.filter((d) => d.time === first.time).map((d) => d.reminder.title)) : "";
 
@@ -169,6 +174,8 @@ export function DueAlerts() {
     return () => clearInterval(t);
   }, []);
 
+  // The strip to take, even on the banner: it is what she recognises.
+  const strip = useStrip(first?.reminder.title);
   if (!first || onCards) return null;
   return (
     <>
@@ -178,8 +185,8 @@ export function DueAlerts() {
         against the picture of the strip, one medicine at a time. */}
     <div role="alert" className="pop absolute inset-x-3 top-3 z-50 flex items-center gap-2.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 shadow-[0_4px_0_#232326]">
       <button type="button" onClick={() => navigate("/dose")} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#232326] bg-white">
-          <Bell className="size-5" aria-hidden />
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-[#232326] bg-white">
+          {strip?.front ? <img src={strip.front} alt="" className="size-full object-cover" /> : <Bell className="size-5" aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="line-clamp-2 block text-lg leading-tight font-bold">

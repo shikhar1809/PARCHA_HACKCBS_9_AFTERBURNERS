@@ -260,7 +260,7 @@ export function EasyHome({ person }: { person: Person }) {
           onClick={() => ask("full")}
           className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-[3px] border-dashed border-[#232326] bg-transparent text-base font-bold"
         >
-          <LayoutGrid className="size-5" aria-hidden /> {t("Open the full app", "पूरा ऐप खोलें", "Poora app kholein")}
+          <LayoutGrid className="size-5" aria-hidden /> {t("Caretaker view", "देखभाल करने वाले का व्यू", "Caretaker view")}
         </button>
       </main>
 
@@ -268,7 +268,7 @@ export function EasyHome({ person }: { person: Person }) {
         <Sheet title={t("Helper", "मददगार", "Helper")} onClose={() => { setLeaving(false); setPinError(null); }}>
           <PinPad
             title={t("Enter the helper PIN", "मददगार का PIN डालें", "Helper ka PIN daalein")}
-            hint={after === "full" ? t("The full app opens for the helper.", "पूरा ऐप मददगार के लिए खुलेगा।", "Poora app helper ke liye khulega.") : t("Only a helper should leave this screen.", "यह स्क्रीन सिर्फ़ मददगार छोड़े।", "Yeh screen sirf helper chhode.")} error={pinError} onDone={(p) => void leave(p)} onCancel={() => { setLeaving(false); setPinError(null); }} />
+            hint={after === "full" ? t("The caretaker view opens, for whoever looks after them.", "देखभाल करने वाले के लिए व्यू खुलेगा।", "Caretaker ke liye view khulega.") : t("Only a helper should leave this screen.", "यह स्क्रीन सिर्फ़ मददगार छोड़े।", "Yeh screen sirf helper chhode.")} error={pinError} onDone={(p) => void leave(p)} onCancel={() => { setLeaving(false); setPinError(null); }} />
         </Sheet>
       ) : null}
     </div>

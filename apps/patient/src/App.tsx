@@ -6,6 +6,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 
 import { useHandset } from "./auth";
 import { seedDemoParchas } from "./components/demoParchas";
+import { seedDemoStrips } from "./components/demoStrips";
 import { drainCallAnswers } from "./components/callScreen";
 import { BackupCheck } from "./components/backup";
 import { Ask } from "./screens/Ask";
@@ -30,6 +31,7 @@ import { Start } from "./screens/Start";
 import { ScanParcha } from "./screens/ScanParcha";
 import { CheckMedicines } from "./screens/CheckMedicines";
 import { DoseCards } from "./screens/DoseCards";
+import { SimpleParcha } from "./screens/SimpleParcha";
 
 /**
  * The name in `parcha.web.app/<name>`, when the path is one of those and not a
@@ -63,6 +65,11 @@ function Inside() {
   useEffect(() => {
     void seedDemoParchas(handset?.phone ?? null);
   }, [handset?.phone]);
+  // And a picture of each of its strips, so every reminder has one to show.
+  const reminders = useReminders(handset?.phone ?? null);
+  useEffect(() => {
+    if (!reminders.loading) void seedDemoStrips(handset?.phone ?? null, reminders.data);
+  }, [handset?.phone, reminders.loading, reminders.data]);
 
   // What was answered on a call screen while the app was closed joins the
   // outbox here, and is sent whenever the connection comes back.
@@ -106,6 +113,7 @@ function Inside() {
           <Route path="/scan" element={<ScanParcha />} />
           <Route path="/rx" element={<ScanParcha />} />
           <Route path="/check" element={<CheckMedicines />} />
+          <Route path="/simple/:key" element={<SimpleParcha />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}

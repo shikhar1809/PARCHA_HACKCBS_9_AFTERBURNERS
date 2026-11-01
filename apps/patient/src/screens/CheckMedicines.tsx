@@ -82,6 +82,8 @@ export function CheckMedicines() {
   const [resolved, setResolved] = useState<Record<string, boolean>>({});
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
+  /** Where the checked medicines were kept, for the simple Parcha. */
+  const [savedAs, setSavedAs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const hits = useMemo(() => (query.trim().length >= 2 ? searchDrugs(formulary.data, query, 5) : []), [formulary.data, query]);
@@ -154,6 +156,7 @@ export function CheckMedicines() {
       });
       // Checked one by one and every strip photographed: locked.
       if (reminders.length) await saveReminders(reminders.slice(0, 20).map((r) => ({ ...r, locked: true })) as ReminderInput[]);
+      setSavedAs(id);
       go("done");
     } catch (e) {
       setError(errorMessage(e));
@@ -413,7 +416,12 @@ export function CheckMedicines() {
                 `${who} ki ${lines.length} dawaiyan. Har time par wahi patta dikhega.`,
               )}
             </p>
-            <BigButton onClick={() => navigate("/schedule", { replace: true })}>{t("See today's medicines", "आज की दवाइयाँ देखें", "Aaj ki dawaiyan dekhein")}</BigButton>
+            {savedAs ? (
+              <BigButton onClick={() => navigate(`/simple/${encodeURIComponent(savedAs)}`, { replace: true })}>{t("See my simple Parcha", "मेरा आसान पर्चा देखें", "Mera aasaan Parcha dekhein")}</BigButton>
+            ) : null}
+            <button type="button" onClick={() => navigate("/schedule", { replace: true })} className="min-h-12 w-full text-lg font-bold underline">
+              {t("See today's medicines", "आज की दवाइयाँ देखें", "Aaj ki dawaiyan dekhein")}
+            </button>
           </div>
         ) : null}
 

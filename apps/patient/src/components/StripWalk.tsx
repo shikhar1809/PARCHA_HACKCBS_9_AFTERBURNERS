@@ -21,7 +21,8 @@ export function StripWalk({ medicines, onDone, finishLabel }: { medicines: { nam
   const [at, setAt] = useState(0);
   const current = medicines[at];
   const strip = useStrip(current?.name);
-  const both = !!strip?.front && !!strip?.back;
+  // A sample drawing is not a photo of the strip in her hand, so it does not count.
+  const both = !!strip?.front && !!strip?.back && !strip.sample;
   const last = at === medicines.length - 1;
   if (!current) return null;
 

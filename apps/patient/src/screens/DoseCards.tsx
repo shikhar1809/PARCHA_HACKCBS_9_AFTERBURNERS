@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { useHandset } from "../auth";
 import { dueNow, NOT_TAKEN_MINUTES, snoozeDose, useNow } from "../components/alerts";
 import { doseDoneNative, followUpNative } from "../components/native";
+import { usePeople } from "../components/people";
 import { speak } from "../components/speak";
 import { StripPictures, useStrip } from "../components/strips";
 import { clockIn, useLang, useT } from "../i18n";
@@ -40,7 +41,11 @@ export function DoseCards() {
   const [answered, setAnswered] = useState<string[]>([]);
   const [count, setCount] = useState(0);
 
-  const due = dueNow(reminders.data, log.data?.taken ?? {}, now).filter((d) => !answered.includes(d.key));
+  const { people, active, openPicker } = usePeople();
+  const due = dueNow(reminders.data, log.data?.taken ?? {}, now, active).filter((d) => !answered.includes(d.key));
+  // Someone else's doses are said to be waiting, never shown to be answered here.
+  const others = active ? [...new Set(dueNow(reminders.data, log.data?.taken ?? {}, now).filter((d) => d.reminder.personName !== active).map((d) => d.reminder.personName))] : [];
+  const shownName = (name: string) => people.find((p) => p.name === name)?.shown ?? name.split(" ")[0];
   const total = Math.max(count, due.length + answered.length);
   const dose = due[0];
 
@@ -67,6 +72,20 @@ export function DoseCards() {
         <p className="text-3xl leading-tight font-bold">
           {answered.length ? t("All answered", "सब हो गया", "Sab ho gaya") : t("Nothing due right now", "अभी कोई दवा नहीं", "Abhi koi dawai nahi")}
         </p>
+        {others.length ? (
+          <div className="w-full space-y-2 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-4 text-left">
+            <p className="text-lg leading-snug font-bold">
+              {t(
+                `${others.map(shownName).join(" and ")} also ${others.length === 1 ? "has" : "have"} medicines due. Only they can answer them, from their own name.`,
+                `${others.map(shownName).join(" और ")} की दवा भी बाकी है। उसका जवाब वही दे सकते हैं, अपने नाम से।`,
+                `${others.map(shownName).join(" aur ")} ki dawai bhi baaki hai. Uska jawab wahi de sakte hain, apne naam se.`,
+              )}
+            </p>
+            <button type="button" onClick={openPicker} className="min-h-12 w-full rounded-xl border-[3px] border-[#232326] bg-white text-lg font-bold">
+              {t("Switch person", "व्यक्ति बदलें", "Vyakti badlein")}
+            </button>
+          </div>
+        ) : null}
         <BigButton onClick={() => navigate("/", { replace: true })}>{t("Done", "ठीक है", "Theek hai")}</BigButton>
       </Screen>
     );

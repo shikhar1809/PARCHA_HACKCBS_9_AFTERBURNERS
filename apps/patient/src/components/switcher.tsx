@@ -1,10 +1,11 @@
 import { ArrowLeftRight, HeartHandshake, LogOut, Plus } from "lucide-react";
 import { useState } from "react";
 
-import { signOutOfPatient } from "../auth";
+import { signOutOfPatient, useHandset } from "../auth";
 import { LangChoice, setLang, useLang, useT } from "../i18n";
 import { Avatar } from "./art";
 import { usePeople, useActivePerson } from "./people";
+import { DEMO_PHONE } from "./demoParchas";
 import { ProfileEditor } from "./profile-editor";
 
 /**
@@ -13,8 +14,26 @@ import { ProfileEditor } from "./profile-editor";
  * that person. Big faces, big names: it has to work for a grandmother who does
  * not read English. Someone who needs help goes straight to their simple screen.
  */
+/**
+ * The family's name for the greeting: the surname two or more of them share,
+ * or "Shukla" on the demo phone, whose family is written with first names
+ * only. No name is better than a guessed one, so with neither it just says
+ * hello.
+ */
+function familyName(phone: string | null, names: string[]): string | null {
+  const counts = new Map<string, number>();
+  for (const n of names) {
+    const parts = n.trim().split(/\s+/);
+    if (parts.length > 1) counts.set(parts[parts.length - 1], (counts.get(parts[parts.length - 1]) ?? 0) + 1);
+  }
+  const shared = [...counts.entries()].find(([w, c]) => c > 1 && !/^(devi|kumar|kumari)$/i.test(w))?.[0];
+  return shared ?? (phone === DEMO_PHONE ? "Shukla" : null);
+}
+
 export function WhoIsUsingScreen() {
   const { people, setActive } = usePeople();
+  const { handset } = useHandset();
+  const family = familyName(handset?.phone ?? null, people.map((p) => p.name));
   const [adding, setAdding] = useState(false);
   const t = useT();
   const lang = useLang();
@@ -25,7 +44,10 @@ export function WhoIsUsingScreen() {
         <div className="mx-auto mb-5 max-w-md">
           <LangChoice value={lang} onChange={(l) => setLang(l)} size="sm" />
         </div>
-        <h1 className="text-[2rem] leading-tight font-bold">{t("Who is using Parcha?", "कौन इस्तेमाल कर रहा है?", "Parcha kaun use kar raha hai?")}</h1>
+        <p className="text-2xl leading-tight font-bold">
+          {family ? t(`Hello, ${family} family`, `नमस्ते, ${family} परिवार`, `Namaste, ${family} parivaar`) : t("Hello", "नमस्ते", "Namaste")}
+        </p>
+        <h1 className="text-[2rem] leading-tight font-bold">{t("Who is using Parcha?", "पर्चा कौन इस्तेमाल कर रहा है?", "Parcha kaun use kar raha hai?")}</h1>
       </div>
 
       <ul className="stagger mx-auto grid w-full max-w-md grid-cols-2 gap-4 px-5">
