@@ -282,7 +282,7 @@ function Signed({ visit }: { visit: Visit }) {
           Signed
         </p>
         <p className="mt-1 text-base">
-          It is already on the patient's phone. Print it (P) if they want paper.
+          Print it (P) and hand it over: the patient's phone gets the medicines when they scan the code on the slip.
         </p>
         {latest ? (
           <div className="mt-3 flex flex-wrap gap-2">

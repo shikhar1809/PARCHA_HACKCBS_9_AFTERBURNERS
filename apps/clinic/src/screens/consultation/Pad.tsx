@@ -22,12 +22,13 @@ import {
   type DictationResult,
   type PrescriptionItem,
   type ScheduleSource,
+  isOral,
+  howWords,
   type Timing,
   lineFromProposal,
   matchesRemoval,
   nextQuestion,
   questionKey,
-  routeSpeech,
   sayFrequency,
   sayLine,
   sayPrescription,
@@ -61,6 +62,8 @@ import { deleteSet, learn, loadMemory, saveSet, top, type RxSet } from "./memory
 import { SafetyPanel, useSafetyCheck } from "./SafetyPanel";
 import { useMic } from "./useMic";
 import { VoiceBar, type Placed, type Turn } from "./VoiceBar";
+import { useMekoEnabled } from "./agent/enabled";
+import { runAgent, warmUp } from "./agent/runtime";
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -109,6 +112,12 @@ export function Pad({ visitId, started, onStart }: { visitId: string; started: b
   const uid = identity?.uid;
   const [memory, setMemory] = useState(() => loadMemory(uid));
   useEffect(() => setMemory(loadMemory(uid)), [uid]);
+  // Whether this clinic has turned learning on. Off (the default) means no
+  // Meko code path runs at all and the pad behaves exactly as it always has.
+  const mekoEnabled = useMekoEnabled();
+  // The slow paths warm while the doctor is still reading the patient's file,
+  // so the first thing said of a morning does not meet a cold start.
+  useEffect(() => warmUp({ mekoEnabled }), [mekoEnabled]);
 
   const [text, setText] = useState("");
   const [dictating, setDictating] = useState(false);
@@ -289,9 +298,19 @@ export function Pad({ visitId, started, onStart }: { visitId: string; started: b
     setThread((t) => (t.at(-1)?.text === question.ask ? t : [...t, { who: "parcha", text: question.ask, ask: true }]));
   }, [question?.ask]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Does what the doctor said (or typed to Parcha), and says back what it did. */
-  function heard(words: string, typed = false) {
-    const actions = routeSpeech(words, drugs, padState, question);
+  /** Does what the doctor said (or typed to Parcha), and says back what it did.
+   *
+   * Everything below the first line is unchanged from when the parser was
+   * called directly: `runAgent` returns the same `VoiceAction[]` the rules
+   * produce, and with learning off it IS the rules (agent/runtime.ts). */
+  async function heard(words: string, typed = false) {
+    const { actions } = await runAgent(words, {
+      drugs,
+      padState,
+      question,
+      mekoEnabled,
+      known: { patientName: visit.data?.patientName, phone: visit.data?.patientPhone },
+    });
     const said: Placed[] = [];
     const talkedAbout: string[] = [];
     if (actions.some((a) => a.kind !== "readBack" && a.kind !== "undo")) {
@@ -984,11 +1003,26 @@ function ItemEditor({
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-2 @lg:grid-cols-4">
-          {item.unlisted ? (
+          {/* A medicine that comes in more than one form is prescribed in one of
+              them, and which one changes everything downstream: the patient is
+              told drops in the eye rather than tablets after food, the pharmacy
+              counts bottles, and the picture on the phone is a dropper. Before
+              this, a listed drug was always its default form, so an eye drop
+              could only be written as a tablet. */}
+          {item.unlisted || (drug?.forms.length ?? 0) > 1 ? (
             <label className="block text-xs">
               Form
-              <select value={item.form} onChange={(e) => onChange({ form: e.target.value })} className={`${FIELD} mt-0.5 !py-1.5`}>
-                {UNLISTED_FORMS.map((f) => (
+              <select
+                value={item.form}
+                onChange={(e) => {
+                  const form = e.target.value;
+                  // A meal instruction chosen while it was a tablet must not
+                  // ride along onto a drop.
+                  onChange(isOral(form) ? { form } : { form, timing: "any" });
+                }}
+                className={`${FIELD} mt-0.5 !py-1.5`}
+              >
+                {(item.unlisted ? UNLISTED_FORMS : (drug?.forms ?? [item.form])).map((f) => (
                   <option key={f} value={f}>
                     {f}
                   </option>
@@ -1017,16 +1051,24 @@ function ItemEditor({
               className={`${FIELD} mt-0.5 !py-1.5`}
             />
           </label>
-          <label className="block text-xs">
-            Timing
-            <select value={item.timing} onChange={(e) => onChange({ timing: e.target.value as Timing })} className={`${FIELD} mt-0.5 !py-1.5`}>
-              {TIMINGS.map((t) => (
-                <option key={t} value={t}>
-                  {TIMING_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* Before or after food is an instruction to a stomach: an eye drop
+              has none, so the question is not asked at all. */}
+          {isOral(item.form) ? (
+            <label className="block text-xs">
+              Timing
+              <select value={item.timing} onChange={(e) => onChange({ timing: e.target.value as Timing })} className={`${FIELD} mt-0.5 !py-1.5`}>
+                {TIMINGS.map((t) => (
+                  <option key={t} value={t}>
+                    {TIMING_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="text-muted-foreground self-end text-xs leading-snug">
+              {howWords(item.form) ?? "Not swallowed"}
+            </p>
+          )}
           <label className="block text-xs">
             Quantity
             <input

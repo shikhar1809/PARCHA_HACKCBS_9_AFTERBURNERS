@@ -1,4 +1,4 @@
-import { TIMING_LABELS, everyText, type Prescription } from "@parcha/core";
+import { TIMING_LABELS, everyText, isOral, siteWords, type Prescription } from "@parcha/core";
 import { DosePictogram } from "@parcha/ui";
 
 import { shortDate } from "../../bits";
@@ -23,7 +23,10 @@ export function PrescriptionView({ rx }: { rx: Prescription }) {
             <p className="text-muted-foreground text-sm">
               <span className="capitalize">{item.form}</span> · {item.strength}{" "}
               · {item.frequency}{(item.everyDays ?? 1) > 1 ? ` · ${everyText(item.everyDays).toLowerCase()}` : ""} · {item.durationDays} days ·{" "}
-              {TIMING_LABELS[item.timing]} · qty {item.quantity}
+              {/* Food for what is swallowed; for a drop or a cream, where it
+                  goes — including on prescriptions signed before forms were
+                  asked about, which can still carry a meal instruction. */}
+              {isOral(item.form) ? TIMING_LABELS[item.timing] : siteWords(item.form) || "not swallowed"} · qty {item.quantity}
             </p>
             <DosePictogram frequency={item.frequency} form={item.form} className="mt-2" />
             {item.instructions ? (
