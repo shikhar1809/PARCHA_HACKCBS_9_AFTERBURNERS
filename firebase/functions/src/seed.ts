@@ -920,7 +920,7 @@ export const seedDemoData = onCall({ timeoutSeconds: 540, memory: "1GiB", cpu: 1
   // something real to show: a request nobody has picked up, one waiting on a
   // doctor, and one that is confirmed for tomorrow morning.
   const today = todayInClinic();
-  // Not the demo family phone: Ramesh on it is left free to ask for a visit himself.
+  // Not the demo family phone: Prashant on it is left free to ask for a visit himself.
   const free = seeded.filter((x) => !openPatients.has(x.id) && x.seed.phone !== "9811044321");
   const demoRequests: {
     who: (typeof free)[number] | undefined;
@@ -1176,29 +1176,104 @@ export const seedDemoData = onCall({ timeoutSeconds: 540, memory: "1GiB", cpu: 1
   }
 
   // ---------------------------------------------------------- a family phone
-  // Kamla is "Dadi" on the shared phone, and needs help with it: signing in as
-  // that phone and choosing her shows the simple screen. Set every run, so
-  // the demo starts the same whatever was changed by hand.
-  await db().collection("profiles").doc(profileId("9811044321", "Kamla Devi")).set({
-    ownerPhone: "9811044321",
-    name: "Kamla Devi",
-    nickname: "Dadi",
-    ageYears: 71,
-    sex: "female",
-    look: {},
-    needsHelp: true,
-    helperName: "Beta",
-    helperNumber: "9811000000",
-    callNumber: null,
-    callNumberVerified: false,
-    access: { lowVision: false, deaf: false, largeText: true, highContrast: false },
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  // The three people on the shared handset. Each one is a profile, because a
+  // profile is the only thing that puts somebody on this phone: the app reads
+  // the family's own record and never the clinic's, so a person who exists
+  // only in a hospital's files does not appear here at all.
+  //
+  // Prabha is "Dadi", and needs help with the phone: signing in as that number
+  // and choosing her shows the simple screen. Set every run, so the demo
+  // starts the same whatever was changed by hand. Any profile left on this
+  // phone by an older seed is cleared first, so renaming the family does not
+  // leave its previous names behind.
+  {
+    const stale = await db().collection("profiles").where("ownerPhone", "==", "9811044321").get();
+    await Promise.all(stale.docs.map((d) => d.ref.delete()));
+  }
+  const FAMILY_PROFILES = [
+    {
+      name: "Prabha Devi",
+      nickname: "Dadi",
+      ageYears: 71,
+      sex: "female",
+      needsHelp: true,
+      helperName: "Beta",
+      helperNumber: "9811000000",
+      access: { lowVision: false, deaf: false, largeText: true, highContrast: false },
+    },
+    {
+      name: "Prashant",
+      nickname: null,
+      ageYears: 48,
+      sex: "male",
+      needsHelp: false,
+      helperName: null,
+      helperNumber: null,
+      access: { lowVision: false, deaf: false, largeText: false, highContrast: false },
+    },
+    {
+      name: "Priya",
+      nickname: null,
+      ageYears: 42,
+      sex: "female",
+      needsHelp: false,
+      helperName: null,
+      helperNumber: null,
+      access: { lowVision: false, deaf: false, largeText: false, highContrast: false },
+    },
+  ];
+  for (const person of FAMILY_PROFILES) {
+    await db().collection("profiles").doc(profileId("9811044321", person.name)).set({
+      ownerPhone: "9811044321",
+      ...person,
+      look: {},
+      callNumber: null,
+      callNumberVerified: false,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
 
-  // The family's medicines, matching what their doctors prescribed: Kamla's
+  // What the family says about themselves — the health summary the Me tab
+  // keeps, and the part of a shared history a doctor reads first. It is the
+  // family's own word, never a hospital's record, which is why the sharing
+  // screens label it that way.
+  const FAMILY_HISTORY = [
+    {
+      personName: "Prabha Devi",
+      conditions: ["Heart disease", "High BP"],
+      allergies: ["Sulfa drugs"],
+      medicines: ["Warfarin 2 mg", "Metoprolol 25 mg", "Calcium + D3 500"],
+      bloodGroup: "B+",
+      notes: "Atrial fibrillation. On warfarin for years; her son keeps the INR card.",
+    },
+    {
+      personName: "Prashant",
+      conditions: ["Diabetes"],
+      allergies: [],
+      medicines: ["Metformin 500 mg", "Glimepiride 1 mg", "Amitriptyline 10 mg"],
+      bloodGroup: "O+",
+      notes: "Sugar found about two years ago. Burning in both feet at night.",
+    },
+    {
+      personName: "Priya",
+      conditions: ["High BP", "Thyroid"],
+      allergies: ["Penicillin"],
+      medicines: ["Amlodipine 5 mg", "Calcium + D3 500"],
+      bloodGroup: "B+",
+      notes: "Penicillin brought out a rash as a child. BP tablets since last year.",
+    },
+  ];
+  for (const h of FAMILY_HISTORY) {
+    await db()
+      .collection("histories")
+      .doc(`9811044321__${h.personName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`)
+      .set({ ownerPhone: "9811044321", ...h, updatedAt: FieldValue.serverTimestamp() });
+  }
+
+  // The family's medicines, matching what their doctors prescribed: Prabha's
   // heart medicines (one due as the demo is loaded, so her simple screen shows
-  // the big "I took it" button straight away), Sunita's blood pressure tablet,
-  // Ramesh's diabetes medicines. Doses earlier today are already ticked, so the
+  // the big "I took it" button straight away), Priya's blood pressure tablet,
+  // Prashant's diabetes medicines. Doses earlier today are already ticked, so the
   // Medicines tab reads like a real day. India time.
   {
     const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
@@ -1208,14 +1283,14 @@ export const seedDemoData = onCall({ timeoutSeconds: 540, memory: "1GiB", cpu: 1
     const started = new Date(Date.now() - 12 * 86400000).toISOString().slice(0, 10);
     const FAMILY = "9811044321";
     const meds: { id: string; person: string; title: string; detail: string; times: string[]; days?: number }[] = [
-      { id: "seed-kamla-calcium", person: "Kamla Devi", title: "Calcium + D3 500", detail: "after food", times: [now] },
-      { id: "seed-kamla-metoprolol", person: "Kamla Devi", title: "Metoprolol 25 mg", detail: "after food", times: ["08:00", "20:00"] },
-      { id: "seed-kamla-warfarin", person: "Kamla Devi", title: "Warfarin 2 mg", detail: "after food, same time daily", times: ["21:00"] },
-      { id: "seed-sunita-amlodipine", person: "Sunita Devi", title: "Amlodipine 5 mg", detail: "after food", times: ["09:00"] },
-      { id: "seed-sunita-calcium", person: "Sunita Devi", title: "Calcium + D3 500", detail: "after food", times: ["14:00"] },
-      { id: "seed-ramesh-glimepiride", person: "Ramesh Chand", title: "Glimepiride 1 mg", detail: "before food", times: ["07:30"] },
-      { id: "seed-ramesh-metformin", person: "Ramesh Chand", title: "Metformin 500 mg", detail: "after food", times: ["08:30", "20:30"] },
-      { id: "seed-ramesh-amitriptyline", person: "Ramesh Chand", title: "Amitriptyline 10 mg", detail: "at bedtime", times: ["22:00"], days: 30 },
+      { id: "seed-prabha-calcium", person: "Prabha Devi", title: "Calcium + D3 500", detail: "after food", times: [now] },
+      { id: "seed-prabha-metoprolol", person: "Prabha Devi", title: "Metoprolol 25 mg", detail: "after food", times: ["08:00", "20:00"] },
+      { id: "seed-prabha-warfarin", person: "Prabha Devi", title: "Warfarin 2 mg", detail: "after food, same time daily", times: ["21:00"] },
+      { id: "seed-priya-amlodipine", person: "Priya", title: "Amlodipine 5 mg", detail: "after food", times: ["09:00"] },
+      { id: "seed-priya-calcium", person: "Priya", title: "Calcium + D3 500", detail: "after food", times: ["14:00"] },
+      { id: "seed-prashant-glimepiride", person: "Prashant", title: "Glimepiride 1 mg", detail: "before food", times: ["07:30"] },
+      { id: "seed-prashant-metformin", person: "Prashant", title: "Metformin 500 mg", detail: "after food", times: ["08:30", "20:30"] },
+      { id: "seed-prashant-amitriptyline", person: "Prashant", title: "Amitriptyline 10 mg", detail: "at bedtime", times: ["22:00"], days: 30 },
     ];
     await wipe("doseLogs");
     for (const r of await db().collection("reminders").where("ownerPhone", "==", FAMILY).get().then((q) => q.docs)) await r.ref.delete();
@@ -1224,11 +1299,11 @@ export const seedDemoData = onCall({ timeoutSeconds: 540, memory: "1GiB", cpu: 1
       await db().collection("reminders").doc(m.id).set({
         ownerPhone: FAMILY, personName: m.person, kind: "medicine", days: [], enabled: true, source: null,
         title: m.title, detail: m.detail, times: m.times,
-        startDate: m.id === "seed-kamla-calcium" ? today : started,
+        startDate: m.id === "seed-prabha-calcium" ? today : started,
         endDate: m.days ? new Date(Date.now() + m.days * 86400000).toISOString().slice(0, 10) : null,
       });
       // Taken already: anything due more than half an hour ago today.
-      for (const time of m.times) if (time < now && m.id !== "seed-kamla-calcium" && minutesBetween(time, now) > 30) taken[`${m.id}@${time.replace(":", "")}`] = new Date().toISOString();
+      for (const time of m.times) if (time < now && m.id !== "seed-prabha-calcium" && minutesBetween(time, now) > 30) taken[`${m.id}@${time.replace(":", "")}`] = new Date().toISOString();
     }
     await db().collection("doseLogs").doc(`${FAMILY}__${today}`).set({ ownerPhone: FAMILY, date: today, taken });
   }

@@ -67,8 +67,8 @@ type Rng = ReturnType<typeof rng>;
 
 /* ---------------------------------------------------------------- people */
 
-const MEN = ["Ramesh", "Suresh", "Mohammed", "Arjun", "Vikas", "Deepak", "Harpreet", "Sanjay", "Imran", "Rajesh", "Amit", "Pradeep", "Karan", "Naveen", "Joseph", "Abdul", "Gopal", "Bhupinder", "Mahesh", "Rakesh", "Salim", "Anil", "Ashok", "Dinesh", "Manoj", "Yusuf", "Sunil", "Hari", "Vinod", "Rohit"];
-const WOMEN = ["Sunita", "Priya", "Fatima", "Kavita", "Meena", "Neelam", "Shabnam", "Anita", "Seema", "Lakshmi", "Gurpreet", "Nirmala", "Ritu", "Sarita", "Rubina", "Asha", "Usha", "Poonam", "Savita", "Nazia", "Komal", "Rani", "Shanti", "Geeta", "Mamta", "Farzana", "Suman", "Jyoti", "Babita", "Radha"];
+const MEN = ["Prashant", "Suresh", "Mohammed", "Arjun", "Vikas", "Deepak", "Harpreet", "Sanjay", "Imran", "Rajesh", "Amit", "Pradeep", "Karan", "Naveen", "Joseph", "Abdul", "Gopal", "Bhupinder", "Mahesh", "Rakesh", "Salim", "Anil", "Ashok", "Dinesh", "Manoj", "Yusuf", "Sunil", "Hari", "Vinod", "Rohit"];
+const WOMEN = ["Priya", "Priya", "Fatima", "Kavita", "Meena", "Neelam", "Shabnam", "Anita", "Seema", "Lakshmi", "Gurpreet", "Nirmala", "Ritu", "Sarita", "Rubina", "Asha", "Usha", "Poonam", "Savita", "Nazia", "Komal", "Rani", "Shanti", "Geeta", "Mamta", "Farzana", "Suman", "Jyoti", "Babita", "Radha"];
 const BOYS = ["Aarav", "Vivaan", "Ayaan", "Kabir", "Rehan", "Ishaan", "Arnav", "Zaid", "Dev", "Yash"];
 const GIRLS = ["Ananya", "Aadhya", "Saanvi", "Myra", "Zara", "Diya", "Kiara", "Inaya", "Pari", "Navya"];
 const SURNAMES = ["Sharma", "Verma", "Gupta", "Singh", "Kumar", "Yadav", "Khan", "Ansari", "Qureshi", "Chauhan", "Rawat", "Bisht", "Negi", "Mishra", "Pandey", "Tiwari", "Jha", "Das", "Nair", "Thomas", "Gill", "Arora", "Malhotra", "Bansal", "Agarwal", "Meena", "Saini", "Prajapati", "Siddiqui", "Joshi"];
