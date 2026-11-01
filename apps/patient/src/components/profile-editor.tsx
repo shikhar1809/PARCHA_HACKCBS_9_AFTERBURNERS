@@ -240,7 +240,6 @@ export function ProfileEditor({ person, onClose }: { person?: Person; onClose: (
               <Plus className="size-5" aria-hidden />
             </button>
           </div>
-          {person?.fromHospital ? <p className="mt-1 text-sm">{t("This is for your own use. It does not change the hospital's record.", "यह सिर्फ़ आपके लिए है। अस्पताल का रिकॉर्ड नहीं बदलता।", "Yeh sirf aapke liye hai. Hospital ka record nahi badalta.")}</p> : null}
         </Group>
 
         <Group title={t("Man, woman or other", "आदमी, औरत या अन्य", "Aadmi, aurat ya aur")}>
@@ -404,7 +403,7 @@ export function ProfileEditor({ person, onClose }: { person?: Person; onClose: (
             className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-[3px] border-[#232326] bg-[oklch(0.94_0.05_25)] text-base font-bold"
           >
             {busy === "remove" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Trash2 className="size-4" aria-hidden />}
-            {person.fromHospital ? t("Reset my changes", "मेरे बदलाव हटाएँ", "Mere badlav hatayein") : t("Remove this person", "इन्हें हटाएँ", "Inhe hatayein")}
+            {t("Remove this person", "इन्हें हटाएँ", "Inhe hatayein")}
           </button>
         ) : null}
       </div>

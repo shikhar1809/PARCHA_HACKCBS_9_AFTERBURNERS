@@ -13,6 +13,7 @@ import {
   vaultStats,
 } from "@parcha/client";
 import { PRIVACY_POINTS, PRIVACY_VERSION } from "@parcha/core";
+import { BackupControls } from "./backup";
 import { Eye, FolderLock, HardDrive, Loader2, PhoneCall, ShieldCheck, Trash2, WifiOff, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -250,6 +251,9 @@ export function MyData({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title={t("My data", "मेरा डेटा", "Mera data")} onClose={onClose}>
       <div className="space-y-4">
+        {/* The phone's own copy of itself comes first: it is the only thing
+            standing between a lost phone and a lost record. */}
+        <BackupControls />
         <button
           type="button"
           disabled={busy !== null}

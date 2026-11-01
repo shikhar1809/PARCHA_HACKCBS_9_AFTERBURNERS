@@ -37,7 +37,7 @@ export function WhoIsUsingScreen() {
               className="bg-card flex w-full flex-col items-center gap-2 rounded-[1.75rem] border-[3px] border-[#232326] px-2 pt-5 pb-4 shadow-[0_5px_0_#232326] transition-transform active:translate-y-1 active:shadow-[0_2px_0_#232326]"
             >
               <Avatar name={p.name} size={104} />
-              {/* Two lines if needed, so "Ramesh Chand" is never cut to "Ramesh …". */}
+              {/* Two lines if needed, so "Prashant" is never cut to "Prashant …". */}
               <span className="line-clamp-2 w-full px-1 text-xl leading-tight font-bold break-words">{p.shown}</span>
               <span className="text-base leading-none">
                 {p.ageYears != null ? t(`${p.ageYears} years`, `${p.ageYears} साल`, `${p.ageYears} saal`) : " "}

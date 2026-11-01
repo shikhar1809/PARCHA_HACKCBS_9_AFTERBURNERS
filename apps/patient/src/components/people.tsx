@@ -13,7 +13,7 @@
  * papers. A switch at the top of every tab asks again. With one person on the
  * phone there is nothing to ask. A person who needs help gets the simple screen.
  */
-import { useProfiles, useVisitsForPhone } from "@parcha/client";
+import { useProfiles } from "@parcha/client";
 import { cleanAccess, shownName, type AvatarLook, type PersonAccess, type Profile } from "@parcha/core";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
@@ -38,7 +38,6 @@ export type Person = {
   /** The family has saved details for them. */
   hasProfile: boolean;
   /** A hospital has seen them. */
-  fromHospital: boolean;
 };
 
 type Ctx = {
@@ -84,27 +83,21 @@ function readActive(): string | null {
 export function PeopleProvider({ children }: { children: ReactNode }) {
   const { handset } = useHandset();
   const phone = handset?.phone ?? null;
-  const visits = useVisitsForPhone(phone);
   const profiles = useProfiles(phone);
   const [chosen, setChosen] = useState<string | null>(readActive);
   const [picked, setPicked] = useState(pickedThisLaunch);
 
   const people = useMemo<Person[]>(() => {
-    const fromVisits = new Map<string, { age: number | null; sex: string | null }>();
-    for (const v of visits.data) {
-      if (!fromVisits.has(v.patientName)) fromVisits.set(v.patientName, { age: v.patientAgeYears, sex: v.patientSex });
-    }
     const byProfile = new Map<string, Profile>(profiles.data.map((p) => [p.name, p]));
-    const names = [...new Set([...fromVisits.keys(), ...byProfile.keys()])].sort((a, b) => a.localeCompare(b));
+    const names = [...byProfile.keys()].sort((a, b) => a.localeCompare(b));
     return names.map((name) => {
-      const v = fromVisits.get(name);
       const p = byProfile.get(name);
       return {
         name,
         shown: p ? shownName(p) : name,
         nickname: p?.nickname ?? null,
-        ageYears: p?.ageYears ?? v?.age ?? null,
-        sex: p?.sex ?? v?.sex ?? null,
+        ageYears: p?.ageYears ?? null,
+        sex: p?.sex ?? null,
         look: p?.look ?? {},
         needsHelp: p?.needsHelp ?? false,
         helperName: p?.helperName ?? null,
@@ -113,10 +106,9 @@ export function PeopleProvider({ children }: { children: ReactNode }) {
         callNumberVerified: p?.callNumberVerified ?? false,
         access: cleanAccess(p?.access),
         hasProfile: !!p,
-        fromHospital: !!v,
       };
     });
-  }, [visits.data, profiles.data]);
+  }, [profiles.data]);
 
   const setActive = useCallback((name: string | null) => {
     setFullAppFor(null);
@@ -141,7 +133,7 @@ export function PeopleProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loading = visits.loading || profiles.loading;
+  const loading = profiles.loading;
   // One person on the phone: they are the one using it.
   const only = people.length === 1 ? people[0].name : null;
   const active = only ?? (chosen && people.some((p) => p.name === chosen) ? chosen : null);
