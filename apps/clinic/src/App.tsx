@@ -33,8 +33,6 @@ import { Intake } from "./screens/Intake";
 import { Kiosk } from "./screens/Kiosk";
 import { Me } from "./screens/Me";
 import { NewPatient } from "./screens/NewPatient";
-import { RespondRequest } from "./screens/RespondRequest";
-import { RequestDetail } from "./screens/RequestDetail";
 import { SignIn } from "./screens/SignIn";
 
 /**
@@ -150,7 +148,6 @@ export function App() {
                   }
                 />
                 <Route path="/desk/new" element={<NewPatient />} />
-                <Route path="/desk/requests/:visitId" element={<RequestDetail />} />
                 <Route path="/intake/:visitId" element={<Intake />} />
               </Route>
               {/* The waiting-room screen: full width, no queue beside it, because
@@ -169,7 +166,6 @@ export function App() {
                     />
                   }
                 />
-                <Route path="/doctor/requests/:visitId" element={<RespondRequest />} />
                 <Route path="/doctor/:visitId" element={<Consultation />} />
               </Route>
               </Route>

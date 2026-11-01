@@ -5,10 +5,14 @@ import { Outlet, useLocation } from "react-router-dom";
 /**
  * A consultation is the doctor's whole screen: no sidebar, no queue beside it,
  * so the dossier and the pad get every pixel. The queue is one Back away.
+ *
+ * The waiting-room kiosk is the same, for a different reason: it faces the
+ * patients, and a staff sidebar listing Pharmacy, Billing and Activity is both
+ * an invitation to wander and a thing no patient should be looking at.
  */
 export function useFocusMode(): boolean {
   const { pathname } = useLocation();
-  return /^\/doctor\/(?!requests\/)[^/]+\/?$/.test(pathname);
+  return /^\/doctor\/(?!requests\/)[^/]+\/?$/.test(pathname) || /^\/kiosk\/?$/.test(pathname);
 }
 
 /**
