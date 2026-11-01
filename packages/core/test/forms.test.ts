@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { doseKind, doseSite, doseWords, howWords, isOral, siteWords, unitWord } from "../src/forms.js";
 import { spokenDose } from "../src/access.js";
-import { rxHindi } from "../src/rxTerms.js";
+import { rxHindi, rxSig } from "../src/rxTerms.js";
 import { remindersFromPrescription, timesForFrequency } from "../src/schedule.js";
 import type { PrescriptionItem } from "../src/types.js";
 
@@ -60,6 +60,12 @@ test("the family's line on the slip counts in the right thing", () => {
   );
 });
 
+test("the chemist's line says where it goes, not when to eat", () => {
+  // a.c./p.c. is about a stomach, so it is not printed on an eye drop.
+  assert.equal(rxSig(drop), "1-1-1 (TDS) in the eye");
+  assert.equal(rxSig({ ...drop, form: "tablet" }), "1-1-1 (TDS) p.c.");
+});
+
 test("a drop is not reminded half an hour before a meal", () => {
   // "Before food" moves a tablet earlier, so the reminder lands before the meal.
   assert.deepEqual(timesForFrequency("1-0-1", "before_food", "tablet"), ["07:30", "20:30"]);
@@ -70,7 +76,7 @@ test("a drop is not reminded half an hour before a meal", () => {
 test("the reminder says where a drop goes, not when to eat", () => {
   const [made] = remindersFromPrescription({
     ownerPhone: "9811044321",
-    personName: "Kamla",
+    personName: "Prabha",
     visitId: "v1",
     startDate: "2026-10-30",
     items: [drop],
@@ -78,7 +84,7 @@ test("the reminder says where a drop goes, not when to eat", () => {
   assert.equal(made.detail, "0.5% · 1 drop in the eye");
   const [tablet] = remindersFromPrescription({
     ownerPhone: "9811044321",
-    personName: "Kamla",
+    personName: "Prabha",
     visitId: "v1",
     startDate: "2026-10-30",
     items: [{ ...drop, form: "tablet" }],

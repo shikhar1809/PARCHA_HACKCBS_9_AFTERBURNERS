@@ -79,13 +79,13 @@ test("a prescription yields one reminder per medicine with fixed times, ending o
 
 test("a new prescription's medicine already in the reminders is a clash; the person's choice decides", async () => {
   const { clashesWith, applyClashChoices } = await import("../src/schedule.js");
-  const base = { ownerPhone: "9811044321", personName: "Ramesh Chand", kind: "medicine" as const, detail: null, days: [], enabled: true };
+  const base = { ownerPhone: "9811044321", personName: "Prashant", kind: "medicine" as const, detail: null, days: [], enabled: true };
   const old = { ...base, id: "r1", title: "Metformin", times: ["08:00", "20:00"], startDate: "2026-10-01", endDate: null, source: { visitId: "v0", drugId: "metformin" } };
   const other = { ...base, id: "r2", title: "Amlodipine", times: ["09:00"], startDate: "2026-10-01", endDate: "2026-10-10", source: null };
-  const sunita = { ...old, id: "r3", personName: "Sunita Devi" };
+  const priya = { ...old, id: "r3", personName: "Priya" };
   const newMet = { ...base, title: "Metformin", times: ["08:00", "14:00", "20:00"], startDate: "2026-10-28", endDate: "2026-11-26", source: { visitId: "v1", drugId: "metformin" } };
   const newPara = { ...base, title: "Paracetamol", times: ["08:00"], startDate: "2026-10-28", endDate: "2026-10-30", source: { visitId: "v1", drugId: "paracetamol" } };
-  const planned = clashesWith([old, other, sunita], [newMet, newPara]);
+  const planned = clashesWith([old, other, priya], [newMet, newPara]);
   assert.equal(planned[0].clash?.id, "r1", "same medicine, same person, still running");
   assert.equal(planned[1].clash, null);
   // A reminder typed by hand ("Metformin 500 mg") is the same medicine as "Metformin".
