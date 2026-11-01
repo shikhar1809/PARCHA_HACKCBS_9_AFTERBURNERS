@@ -34,7 +34,7 @@ export type SheetPatient = {
 const SEX: Record<string, string> = { female: "F", male: "M", other: "Other" };
 
 /** The QR as plain SVG squares, so nothing is injected and it prints crisp. */
-function Qr({ text, size = 84 }: { text: string; size?: number }) {
+export function Qr({ text, size = 84, label = "QR code" }: { text: string; size?: number; label?: string }) {
   const { n, cells } = useMemo(() => {
     const qr = QRCode.create(text, { errorCorrectionLevel: "M" });
     const n = qr.modules.size;
@@ -51,7 +51,7 @@ function Qr({ text, size = 84 }: { text: string; size?: number }) {
       viewBox={`-1 -1 ${n + 2} ${n + 2}`}
       shapeRendering="crispEdges"
       role="img"
-      aria-label="QR code for this prescription"
+      aria-label={label}
     >
       <rect x={-1} y={-1} width={n + 2} height={n + 2} fill="#fff" />
       {cells.map(([x, y]) => (
