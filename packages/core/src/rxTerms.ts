@@ -70,12 +70,17 @@ const TIMING_HI: Record<Timing, string> = {
 export const rxName = (item: Pick<PrescriptionItem, "form" | "drugName" | "strength">) =>
   [formAbbr(item.form), item.drugName.toUpperCase(), item.strength].filter(Boolean).join(" ");
 
-/** "1-0-1 (BD) p.c." */
-export function rxSig(item: Pick<PrescriptionItem, "frequency" | "timing">): string {
+/**
+ * "1-0-1 (BD) p.c." — and for anything not swallowed, where it goes in place
+ * of the meal: "1-1-1 (TDS) in the eye". A chemist reading "p.c." on an eye
+ * drop learns nothing from it.
+ */
+export function rxSig(item: Pick<PrescriptionItem, "frequency" | "timing"> & { form?: string }): string {
   const frequency = normaliseFrequency(item.frequency);
   const abbr = frequencyAbbr(frequency);
   const pattern = frequencySlots(frequency) ? frequency : null;
-  return [pattern ?? abbr ?? frequency, pattern && abbr ? `(${abbr})` : null, TIMING_ABBR[item.timing] || null].filter(Boolean).join(" ");
+  const how = isOral(item.form) ? TIMING_ABBR[item.timing] || null : siteWords(item.form) || null;
+  return [pattern ?? abbr ?? frequency, pattern && abbr ? `(${abbr})` : null, how].filter(Boolean).join(" ");
 }
 
 /**
