@@ -118,12 +118,17 @@ public class CallActivity extends Activity implements TextToSpeech.OnInitListene
     return "hi".equals(language) ? hi : en;
   }
 
-  /** What the phone says out loud. The same shape as the telephone script. */
+  /**
+   * What the phone says out loud. One sentence, then the medicine — the same
+   * words the telephone call uses, so a family hears the same thing whichever
+   * way the reminder reaches them. Nothing is asked and nothing is answered
+   * by voice: the two buttons are the conversation.
+   */
   private String said(String title, String person) {
     if ("hi".equals(language)) {
-      return (person.isEmpty() ? "" : person + " के लिए ") + "दवा का समय हो गया है। " + title + " लेनी है।";
+      return "आपकी दवाई का समय हो गया। " + title + "।";
     }
-    return "It is time for the medicine" + (person.isEmpty() ? "" : " for " + person) + ". " + title + ".";
+    return "It is time for your medicine. " + title + ".";
   }
 
   /** The phone's own ringtone and a long buzz, the way a call arrives. */

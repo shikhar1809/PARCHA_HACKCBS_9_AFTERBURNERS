@@ -9,14 +9,14 @@
  * the same document, and the clinic's record stays at the clinic.
  *
  * Short steps: scan, check (the slip is shown with who signed it), who it is
- * for, photos of each strip, then the schedule it makes — with any medicine
- * already in the reminders asked about rather than quietly doubled.
+ * for, each strip photographed one medicine at a time, then the schedule it
+ * makes, set locked — with any medicine already in the reminders asked about
+ * rather than quietly doubled.
  *
  * A slip whose code will not read — creased, faded, or printed before any of
- * this — can still be kept as a photograph. Then it is a picture of a Parcha
- * and nothing more: no medicines are read out of a photograph, and no
- * reminders are set from one. Saying that plainly is better than guessing at
- * a dose.
+ * this — is photographed instead and read on the phone (CheckMedicines, in its
+ * printed mode). A photograph is not signed, so nothing read off it is
+ * believed until the person has confirmed every medicine against the paper.
  *
  * The phone's own camera app works too: the code is a link to /rx, which
  * opens here with the prescription already read.
@@ -25,7 +25,7 @@ import { errorMessage, readRx, vaultPut, type RxRead, markTouched
 } from "@parcha/client";
 import { normaliseFrequency, remindersFromPrescription, rxHindi, rxName, toDateString, type Reminder, type RxPayload, type Timing } from "@parcha/core";
 import { Screen, cn } from "@parcha/ui";
-import { BadgeCheck, Camera, Check, FlaskConical, ImagePlus, Loader2, ShieldAlert } from "lucide-react";
+import { BadgeCheck, Camera, Check, FlaskConical, Loader2, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -33,7 +33,9 @@ import { useHandset } from "../auth";
 import { NewSchedule } from "../components/NewSchedule";
 import { QrScanner } from "../components/QrScanner";
 import { usePeople } from "../components/people";
-import { StripCapture, shrinkPhoto } from "../components/strips";
+import { StripWalk } from "../components/StripWalk";
+import { shrinkPhoto } from "../components/strips";
+import { startFromPrintedPhoto } from "./CheckMedicines";
 import { useT } from "../i18n";
 import { BigButton, DoseTiles, Header } from "../kit";
 
@@ -50,8 +52,6 @@ export function ScanParcha() {
   const [who, setWho] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** A photograph of the slip, when its code could not be read. */
-  const [photo, setPhoto] = useState<string | null>(null);
   /** The reminders the scanned slip makes, waiting to be checked and set. */
   const [proposed, setProposed] = useState<Omit<Reminder, "id">[]>([]);
 
@@ -79,26 +79,19 @@ export function ScanParcha() {
     if (rx && !who) setWho(named?.name ?? (!active && people.length === 1 ? people[0].name : null));
   }, [rx, people, who, named, active]);
 
-  // A photograph has nothing to read, so it only asks who it belongs to.
-  const photoOnly = !rx && photo !== null;
-  const steps: Step[] = photoOnly
-    ? ["scan", "who"]
-    : askWho
-      ? ["scan", "check", "who", "strips"]
-      : ["scan", "check", "strips"];
+  const steps: Step[] = askWho ? ["scan", "check", "who", "strips"] : ["scan", "check", "strips"];
   const at = steps.indexOf(step);
 
-  /** The slip could not be scanned: keep the paper as a picture instead. */
+  /** The code will not read: photograph the slip and read the print instead. */
   async function takePhoto(file: File | undefined) {
     if (!file) return;
     setBusy(true);
     setError(null);
     try {
-      setPhoto(await shrinkPhoto(file, 1600));
-      setStep("who");
+      startFromPrintedPhoto(await shrinkPhoto(file, 2000), await shrinkPhoto(file, 1200));
+      navigate("/check", { replace: true });
     } catch (e) {
       setError(errorMessage(e));
-    } finally {
       setBusy(false);
     }
   }
@@ -108,13 +101,6 @@ export function ScanParcha() {
     setBusy(true);
     setError(null);
     try {
-      if (photoOnly) {
-        // A picture of a Parcha, kept on this phone. No medicines are read out
-        // of it, so nothing is set from it either.
-        await vaultPut(`slip:${Date.now()}`, { person: who, photo, savedAt: new Date().toISOString() });
-        setStep("done");
-        return;
-      }
       if (!rx || !read?.ok) return;
       const items = rx.m.map(([name, strength, form, frequency, days, timing, every]) => ({
         drugId: name.toLowerCase(),
@@ -136,7 +122,7 @@ export function ScanParcha() {
         }).slice(0, 20),
       );
       // The slip stays on the phone, encrypted, for "My Parchas".
-      await vaultPut(`parcha:${rx.c}`, { payload: rx, token: read.token, person: who, photo, savedAt: new Date().toISOString() });
+      await vaultPut(`parcha:${rx.c}`, { payload: rx, token: read.token, person: who, photo: null, savedAt: new Date().toISOString() });
       // The phone's own copy is now newer than any backup it holds.
       await markTouched();
       setStep("schedule");
@@ -176,7 +162,7 @@ export function ScanParcha() {
               </p>
               <label className="hover-orange flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-[3px] border-[#232326] bg-white text-lg font-bold">
                 {busy ? <Loader2 className="size-6 animate-spin" aria-hidden /> : <Camera className="size-6" aria-hidden />}
-                {t("Keep a photo of it", "उसकी फ़ोटो रखें", "Uski photo rakhein")}
+                {t("Photograph the Parcha", "पर्चे की फ़ोटो लें", "Parche ki photo lein")}
                 <input
                   type="file"
                   accept="image/*"
@@ -187,9 +173,9 @@ export function ScanParcha() {
               </label>
               <p className="text-base leading-snug">
                 {t(
-                  "The photo is kept on this phone with your Parchas. Medicine times cannot be set from a photo — only the square code can do that.",
-                  "फ़ोटो इसी फ़ोन में आपके पर्चों के साथ रहेगी। फ़ोटो से दवा का समय नहीं लग सकता — वह सिर्फ़ चौकोर कोड से होता है।",
-                  "Photo isi phone mein aapke Parchon ke saath rahegi. Photo se dawai ka time nahi lag sakta — woh sirf chaukor code se hota hai.",
+                  "This phone reads the printed medicines and times. You then check every one against the paper. The photo stays on this phone.",
+                  "यह फ़ोन छपी दवाइयाँ और समय पढ़ेगा। फिर आप हर एक को पर्चे से मिलाएँगे। फ़ोटो इसी फ़ोन में रहती है।",
+                  "Yeh phone chhapi dawaiyan aur time padhega. Phir aap har ek ko parche se milayenge. Photo isi phone mein rehti hai.",
                 )}
               </p>
               {error ? (
@@ -288,48 +274,25 @@ export function ScanParcha() {
                 </button>
               ))}
             </div>
-            {photoOnly ? (
-              <>
-                {photo ? (
-                  <img src={photo} alt="" className="w-full rounded-2xl border-[3px] border-[#232326] object-contain" />
-                ) : null}
-                {error ? (
-                  <p role="alert" className="text-destructive text-lg font-bold">
-                    {error}
-                  </p>
-                ) : null}
-                <BigButton disabled={!who || busy} onClick={() => void finish()}>
-                  {busy ? <Loader2 className="size-6 animate-spin" aria-hidden /> : t("Keep this Parcha", "यह पर्चा रखें", "Yeh Parcha rakhein")}
-                </BigButton>
-              </>
-            ) : (
               <BigButton disabled={!who} onClick={() => setStep("strips")}>{t("Next", "आगे", "Aage")}</BigButton>
-            )}
           </>
         ) : null}
 
         {step === "strips" && rx ? (
           <>
             <p className="text-xl leading-snug font-bold">
-              {t("Take a photo of each strip. At medicine time you will see the strip to take.", "हर पत्ते की फ़ोटो लें। दवा के समय वही पत्ता दिखेगा।", "Har patte ki photo lein. Dawa ke time wahi patta dikhega.")}
+              {t("Now each strip, one at a time. At medicine time you will see the strip to take.", "अब हर पत्ता, एक-एक करके। दवा के समय वही पत्ता दिखेगा।", "Ab har patta, ek-ek karke. Dawa ke time wahi patta dikhega.")}
             </p>
-            {rx.m.map(([name, strength]) => (
-              <div key={name} className="space-y-2 rounded-2xl border-[3px] border-[#232326] bg-card p-3">
-                <p className="text-lg font-bold">
-                  {name} {strength}
-                </p>
-                <StripCapture medicine={name} />
-              </div>
-            ))}
+            {busy ? <Loader2 className="mx-auto size-8 animate-spin" aria-label={t("Saving", "रख रहे हैं", "Rakh rahe hain")} /> : null}
+            <StripWalk
+              medicines={rx.m.map(([name, strength, form]) => ({ name, detail: [strength, form].filter(Boolean).join(" ") }))}
+              onDone={() => void finish()}
+            />
             {error ? (
               <p role="alert" className="text-destructive text-lg font-bold">
                 {error}
               </p>
             ) : null}
-            <BigButton disabled={busy} onClick={() => void finish()}>
-              {busy ? <Loader2 className="size-6 animate-spin" /> : t("Next: my medicine times", "आगे: दवा का समय", "Aage: dawai ka time")}
-            </BigButton>
-            <p className="text-muted-foreground text-center text-base">{t("Photos are optional, and stay on this phone.", "फ़ोटो ज़रूरी नहीं, और इसी फ़ोन में रहती हैं।", "Photo zaroori nahi, aur isi phone mein rehti hain.")}</p>
           </>
         ) : null}
 
@@ -339,28 +302,11 @@ export function ScanParcha() {
               {t("Your medicine times, from the Parcha", "पर्चे से बना आपका दवा का समय", "Parche se bana aapka dawai ka time")}
             </p>
             {/* A medicine already in the reminders is asked about, not doubled. */}
-            <NewSchedule proposed={proposed} onDone={() => setStep("done")} />
+            <NewSchedule proposed={proposed} lock onDone={() => setStep("done")} />
             <button type="button" onClick={() => setStep("done")} className="min-h-11 w-full text-center text-base font-bold underline">
               {t("Not now", "अभी नहीं", "Abhi nahi")}
             </button>
           </>
-        ) : null}
-
-        {step === "done" && photoOnly ? (
-          <div className="space-y-4 text-center">
-            <ImagePlus className="mx-auto size-16" strokeWidth={2} aria-hidden />
-            <p className="text-2xl leading-tight font-bold">{t("The Parcha is kept", "पर्चा रख लिया", "Parcha rakh liya")}</p>
-            <p className="text-lg leading-relaxed">
-              {t(
-                `The photo is with ${who}'s Parchas on this phone. For medicine reminders, scan the square code on a printed Parcha.`,
-                `फ़ोटो इस फ़ोन में ${who} के पर्चों के साथ है। दवा के रिमाइंडर के लिए छपे पर्चे का चौकोर कोड स्कैन कीजिए।`,
-                `Photo is phone mein ${who} ke Parchon ke saath hai. Dawai ke reminder ke liye chhape Parche ka chaukor code scan kijiye.`,
-              )}
-            </p>
-            <BigButton onClick={() => navigate("/records", { replace: true })}>
-              {t("See my Parchas", "मेरे पर्चे देखें", "Mere Parche dekhein")}
-            </BigButton>
-          </div>
         ) : null}
 
         {step === "done" && rx ? (

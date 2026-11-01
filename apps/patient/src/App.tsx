@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { PendingBar, SessionGuard, useOutboxSync, useReminders, usingEmulators } from "@parcha/client";
 import { usableUsername } from "@parcha/core";
 import { PhoneFrame, Splash, useFontsReady } from "@parcha/ui";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { useHandset } from "./auth";
 import { seedDemoParchas } from "./components/demoParchas";
@@ -29,6 +29,7 @@ import { setLangPerson, useT } from "./i18n";
 import { Start } from "./screens/Start";
 import { ScanParcha } from "./screens/ScanParcha";
 import { CheckMedicines } from "./screens/CheckMedicines";
+import { DoseCards } from "./screens/DoseCards";
 
 /**
  * The name in `parcha.web.app/<name>`, when the path is one of those and not a
@@ -50,8 +51,9 @@ function Inside() {
   const navigate = useNavigate();
   // Changes made with no connection are sent as soon as there is one.
   useOutboxSync();
-  // The buttons on a reminder notification ("Taken", "Later") land here.
-  useNotificationActions(() => navigate("/schedule"), snoozeDose);
+  // A tap on a reminder notification opens the dose cards.
+  useNotificationActions(() => navigate("/dose"), snoozeDose);
+  const onCards = useLocation().pathname === "/dose";
   const active = useActivePerson();
   const { picking } = usePeople();
   // The demo phone starts with the family's three Parchas already on it, so
@@ -85,7 +87,11 @@ function Inside() {
   if (picking) return <WhoIsUsingScreen />;
   return (
     <>
-      {easy ? (
+      {/* The dose cards open over either home: the simple screen is for the
+          person who most needs to see which strip to take. */}
+      {onCards ? (
+        <DoseCards />
+      ) : easy ? (
         <EasyHome person={active} />
       ) : (
         <Routes>

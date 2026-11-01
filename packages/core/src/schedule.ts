@@ -35,6 +35,14 @@ export type Reminder = {
   enabled: boolean;
   /** Where it came from, when it was made from a prescription. */
   source: { visitId: string; drugId: string | null } | null;
+  /**
+   * Set once a schedule has been verified medicine by medicine and every strip
+   * photographed. A locked reminder cannot be edited, switched off or deleted
+   * from the phone; only a newer Parcha ends it (it gets an end date, so its
+   * history stays). The lock is what lets a family trust that the times on the
+   * phone are the times that were checked.
+   */
+  locked?: boolean;
 };
 
 /** Which doses have been ticked, for one day: key -> when. */

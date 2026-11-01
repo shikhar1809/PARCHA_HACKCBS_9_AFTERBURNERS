@@ -64,7 +64,11 @@ export type CallJob = {
 };
 
 export const MAX_ATTEMPTS = 2;
-export const RETRY_AFTER_MINUTES = 10;
+/**
+ * The same thirty minutes the app waits before asking again about a dose
+ * marked "not taken", so the phone and the call never nag on two clocks.
+ */
+export const RETRY_AFTER_MINUTES = 30;
 /** A call is placed within this many minutes after the dose time, never long after. */
 export const CALL_WINDOW_MINUTES = 8;
 export const MAX_CALLS_PER_DAY = 12;
@@ -100,26 +104,29 @@ function byPerson(doses: { title: string; personName: string }[]): { person: str
 }
 
 /**
- * The words of one call. Short, one question, and the key presses are said
- * last, after the time and the medicines, because that is the order a person
- * needs them in.
+ * The words of one call: one sentence, then the medicines, and nothing asked.
+ *
+ * The call is deliberately dumb. It is a bell, not a conversation — an elderly
+ * person told to "press 1" on a call mostly hangs up or presses nothing, and a
+ * key press could not say *which* of three medicines went down anyway. Whether
+ * a dose was taken is answered in the app, one card per medicine, and the
+ * second call only happens if nobody ticked it off there. The same sentence is
+ * what the phone's own call screen says.
  */
 export function buildScript(
   language: CallLanguage,
-  time: string,
+  _time: string,
   doses: { title: string; personName: string }[],
-  attempt = 1,
+  _attempt = 1,
 ): string {
   const groups = byPerson(doses);
   const single = groups.length === 1;
   if (language === "hi") {
     const what = groups.map((g) => (single ? join(g.meds, "और") : `${g.person} के लिए ${join(g.meds, "और")}`)).join("। ");
-    const who = single ? ` ${groups[0].person} की` : "";
-    return `नमस्ते। यह पर्चा की ओर से दवा की याद दिलाने वाला कॉल है। ${attempt > 1 ? "हमने पहले भी फ़ोन किया था। " : ""}अभी ${spokenTimeHindi(time)} हैं।${who} दवा लेने का समय हो गया है: ${what}। अगर दवा ले ली है तो एक दबाइए। दस मिनट बाद फिर याद दिलाने के लिए दो दबाइए। धन्यवाद।`;
+    return `आपकी दवाई का समय हो गया। ${what}।`;
   }
   const what = groups.map((g) => (single ? join(g.meds, "and") : `${g.person}: ${join(g.meds, "and")}`)).join(". ");
-  const who = single ? ` for ${groups[0].person}` : "";
-  return `Hello, this is Parcha with your medicine reminder. ${attempt > 1 ? "We called a little while ago. " : ""}It is ${formatClock(time)}. It is time to take${who}: ${what}. If you have taken it, press 1. To be reminded again in ten minutes, press 2. Thank you.`;
+  return `It is time for your medicine. ${what}.`;
 }
 
 /** What is said after a key press. */

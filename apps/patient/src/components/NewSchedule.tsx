@@ -18,7 +18,7 @@
 import { errorMessage, saveReminders, useReminders, type ReminderInput } from "@parcha/client";
 import { applyClashChoices, clashesWith, formatClock, type ClashChoice, type Reminder } from "@parcha/core";
 import { cn } from "@parcha/ui";
-import { AlertTriangle, Bell, CalendarCheck, Loader2, Pill } from "lucide-react";
+import { AlertTriangle, Bell, CalendarCheck, Loader2, Lock, Pill } from "lucide-react";
 import { useState } from "react";
 
 import { useHandset } from "../auth";
@@ -28,10 +28,13 @@ import { dateIn, useLang, useT } from "../i18n";
 export function NewSchedule({
   proposed,
   onDone,
+  lock = false,
 }: {
   /** Made from the Parcha that was added, by `remindersFromPrescription`. */
   proposed: Omit<Reminder, "id">[];
   onDone: () => void;
+  /** The medicines were checked and their strips photographed: set them locked. */
+  lock?: boolean;
 }) {
   const t = useT();
   const lang = useLang();
@@ -49,7 +52,7 @@ export function NewSchedule({
     try {
       const { save, end } = applyClashChoices(planned, choices);
       const ended = end.map(({ reminder, endDate }) => ({ ...reminder, endDate }));
-      const all = [...save, ...ended].slice(0, 20) as ReminderInput[];
+      const all = [...save.map((r) => (lock ? { ...r, locked: true } : r)), ...ended].slice(0, 20) as ReminderInput[];
       if (all.length) await saveReminders(all);
       onDone();
     } catch (e) {
@@ -134,8 +137,10 @@ export function NewSchedule({
         onClick={() => void set()}
         className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand)] text-lg font-bold shadow-[0_4px_0_#232326] disabled:opacity-60"
       >
-        {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Bell className="size-5" aria-hidden />}
-        {t("Set my new schedule", "मेरा नया समय लगाएँ", "Mera naya schedule lagayein")}
+        {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : lock ? <Lock className="size-5" aria-hidden /> : <Bell className="size-5" aria-hidden />}
+        {lock
+          ? t("Lock my schedule", "मेरा समय लॉक करें", "Mera schedule lock karein")
+          : t("Set my new schedule", "मेरा नया समय लगाएँ", "Mera naya schedule lagayein")}
       </button>
     </div>
   );

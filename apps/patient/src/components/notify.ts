@@ -13,7 +13,11 @@ import { useEffect } from "react";
 
 import { clockIn, currentLang, personLang, tr } from "../i18n";
 
-/** The look of a dose reminder: loud enough to notice, and with the two answers on it. */
+/**
+ * The look of a dose reminder: loud enough to notice, and with no answers on
+ * it. Tapping it opens the dose cards, where each medicine is answered under
+ * the photo of its strip.
+ */
 export function doseNotification(dose: Dose, date: string): [string, NotificationOptions & { vibrate?: number[]; actions?: { action: string; title: string }[] }] {
   const who = dose.reminder.personName.split(" ")[0];
   const lang = personLang(dose.reminder.personName) ?? currentLang();
@@ -27,10 +31,6 @@ export function doseNotification(dose: Dose, date: string): [string, Notificatio
       // A reminder that vanishes after five seconds is a reminder that was missed.
       requireInteraction: true,
       vibrate: [400, 150, 400, 150, 600],
-      actions: [
-        { action: "taken", title: tr(lang, "✓ Taken", "✓ ले ली", "✓ Le li") },
-        { action: "later", title: tr(lang, "Later (10 min)", "बाद में (10 मिनट)", "Baad mein (10 min)") },
-      ],
       data: { key: dose.key, date },
     },
   ];
@@ -54,11 +54,12 @@ export async function showDoseNotification(dose: Dose, date: string): Promise<bo
   }
 }
 
-const SNOOZE_MINUTES = 10;
+/** "Later" from a notification shown by an older build. */
+const SNOOZE_MINUTES = 30;
 
 /**
- * Listens for the buttons on a notification: "Taken" ticks the dose, "Later"
- * asks again in ten minutes (while the app is open). Mount once, near the top.
+ * Listens for a tap on a notification, which opens the dose cards. ("Taken" and
+ * "Later" only come from notifications an older build showed.) Mount once.
  */
 export function useNotificationActions(onOpenSchedule: () => void, onSnooze: (key: string, date: string, minutes: number) => void) {
   useEffect(() => {

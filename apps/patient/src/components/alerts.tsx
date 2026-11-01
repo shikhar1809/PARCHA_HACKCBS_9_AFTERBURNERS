@@ -1,8 +1,9 @@
-import { markDose, useDoseLog, useReminders } from "@parcha/client";
+import { useDoseLog, useReminders } from "@parcha/client";
 import { Capacitor } from "@capacitor/core";
-import { dosesOn, minutesSince, spokenReminder, toDateString, type Dose } from "@parcha/core";
-import { Bell, Check, Volume2, X } from "lucide-react";
+import { dosesOn, minutesSince, spokenReminder, toDateString, type Dose, type Reminder } from "@parcha/core";
+import { Bell, ChevronRight, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useHandset } from "../auth";
 import { clockIn, currentLang, tr, useLang, useT } from "../i18n";
@@ -68,20 +69,47 @@ export async function setAlerts(on: boolean): Promise<{ on: boolean; note?: stri
 
 const seenKey = (date: string, key: string) => `parcha.alerted.${date}.${key}`;
 
-/** Doses the person said "later" to, until when. Held in memory: it only matters while the app is open. */
-const snoozes = new Map<string, number>();
+/** How long "Not taken" waits before asking again. The telephone call waits the same. */
+export const NOT_TAKEN_MINUTES = 30;
+/** A dose is asked about for this long after its time, then left to the day's list. */
+const DUE_FOR_MINUTES = 240;
+
+const DEFER = "parcha.deferred";
+/**
+ * Doses the person said "not taken" or "later" to, and until when. Kept on the
+ * phone rather than in memory, so closing the app does not forget the follow-up.
+ */
+function deferrals(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(DEFER) ?? "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
 
 /** Hides a dose's reminder for a while; it comes back, and rings again, afterwards. */
 export function snoozeDose(key: string, date: string, minutes: number) {
-  snoozes.set(key, Date.now() + minutes * 60_000);
+  const all = deferrals();
+  // Old follow-ups are dropped as new ones are written.
+  for (const k of Object.keys(all)) if (all[k] < Date.now() - 86_400_000) delete all[k];
+  all[`${date}|${key}`] = Date.now() + minutes * 60_000;
   try {
+    localStorage.setItem(DEFER, JSON.stringify(all));
     sessionStorage.removeItem(seenKey(date, key));
   } catch {
     /* it will still re-show; it may not ring a second time */
   }
 }
 
-const snoozed = (key: string) => (snoozes.get(key) ?? 0) > Date.now();
+const snoozed = (date: string, key: string) => (deferrals()[`${date}|${key}`] ?? 0) > Date.now();
+
+/** The doses to ask about right now: due, not ticked, and not waiting on a follow-up. */
+export function dueNow(reminders: Reminder[], taken: Record<string, unknown>, now: Date): Dose[] {
+  const today = toDateString(now);
+  return dosesOn(reminders, today).filter(
+    (d) => d.reminder.kind === "medicine" && !(d.key in taken) && !snoozed(today, d.key) && minutesSince(d.time, now) >= 0 && minutesSince(d.time, now) < DUE_FOR_MINUTES,
+  );
+}
 
 /**
  * Watches today's doses and, when one is due, shows a banner at the top of the
@@ -108,10 +136,10 @@ export function DueAlerts() {
     return () => clearInterval(t);
   }, []);
 
+  const navigate = useNavigate();
+  const onCards = useLocation().pathname === "/dose";
   const taken = log.data?.taken ?? {};
-  const due: Dose[] = on
-    ? dosesOn(reminders.data, today).filter((d) => !(d.key in taken) && !snoozed(d.key) && minutesSince(d.time, now) >= 0 && minutesSince(d.time, now) < 45)
-    : [];
+  const due: Dose[] = on ? dueNow(reminders.data, taken, now) : [];
   const first = due[0];
   // How this person takes a reminder: spoken for someone who cannot see well,
   // flashing and vibrating for someone who cannot hear.
@@ -141,24 +169,30 @@ export function DueAlerts() {
     return () => clearInterval(t);
   }, []);
 
-  if (!first) return null;
+  if (!first || onCards) return null;
   return (
     <>
     {/* Someone who cannot hear the chime sees the whole screen pulse instead. */}
     {access?.deaf ? <div aria-hidden className="alert-flash pointer-events-none absolute inset-0 z-40" /> : null}
+    {/* The banner only says it is time; the answer is given on the cards,
+        against the picture of the strip, one medicine at a time. */}
     <div role="alert" className="pop absolute inset-x-3 top-3 z-50 flex items-center gap-2.5 rounded-2xl border-[3px] border-[#232326] bg-[var(--morning-soft)] p-2.5 shadow-[0_4px_0_#232326]">
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#232326] bg-white">
-        <Bell className="size-5" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-lg leading-tight font-bold">
-          {t(`Time for ${first.reminder.title}`, `${first.reminder.title} का समय`, `${first.reminder.title} ka time`)}
-        </p>
-        <p className="truncate text-base">
-          {first.reminder.personName.split(" ")[0]} · {clockIn(lang, first.time)}
-          {due.length > 1 ? t(` · +${due.length - 1} more`, ` · +${due.length - 1} और`, ` · +${due.length - 1} aur`) : ""}
-        </p>
-      </div>
+      <button type="button" onClick={() => navigate("/dose")} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#232326] bg-white">
+          <Bell className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 block text-lg leading-tight font-bold">
+            {due.length > 1
+              ? t(`Time for ${due.length} medicines`, `${due.length} दवाइयों का समय`, `${due.length} dawaiyon ka time`)
+              : t(`Time for ${first.reminder.title}`, `${first.reminder.title} का समय`, `${first.reminder.title} ka time`)}
+          </span>
+          <span className="block truncate text-base">
+            {first.reminder.personName.split(" ")[0]} · {clockIn(lang, first.time)} · {t("Tap to see", "देखने के लिए छुएँ", "Dekhne ke liye chhuein")}
+          </span>
+        </span>
+        <ChevronRight className="size-6 shrink-0" aria-hidden />
+      </button>
       <button
         type="button"
         aria-label={`${t("Listen", "सुनें", "Suniye")}: ${sayIt}`}
@@ -166,25 +200,6 @@ export function DueAlerts() {
         className="flex size-12 shrink-0 items-center justify-center rounded-xl border-[3px] border-[#232326] bg-white"
       >
         <Volume2 className="size-5" aria-hidden />
-      </button>
-      <button
-        type="button"
-        aria-label={t("Mark as taken", "ले ली", "Le li")}
-        onClick={() => void markDose(today, first.key, true).catch(() => undefined)}
-        className="flex size-12 shrink-0 items-center justify-center rounded-xl border-[3px] border-[#232326] bg-[#2e9e5b] text-white"
-      >
-        <Check className="size-5" strokeWidth={3.2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        aria-label={t("Remind me later", "बाद में याद दिलाएँ", "Baad mein yaad dilayein")}
-        onClick={() => {
-          snoozeDose(first.key, today, 10);
-          bump((n) => n + 1);
-        }}
-        className="flex size-12 shrink-0 items-center justify-center rounded-xl border-[3px] border-[#232326] bg-white"
-      >
-        <X className="size-5" aria-hidden />
       </button>
     </div>
     </>

@@ -8,6 +8,10 @@
  * exact, clear reading marked "Check". Nothing is added until the person taps
  * Add, nothing is suggested that is not printed on the bill, and the photo is
  * read on the phone and kept nowhere new.
+ *
+ * The same reader reads a printed Parcha whose code would not scan; then the
+ * line each name was found on goes with it, so the times printed beside the
+ * name can be filled in (and are still confirmed by the person).
  */
 import { medicinesIn, type Drug, type Finding } from "@parcha/core";
 import { cn } from "@parcha/ui";
@@ -18,8 +22,22 @@ import { useT } from "../i18n";
 import { PhotoCrop } from "./PhotoCrop";
 import { readText } from "./readText";
 
-export function BillReader({ picture, drugs, added, onAdd }: { picture: string; drugs: Drug[]; added: string[]; onAdd: (drug: Drug) => void }) {
+export function BillReader({
+  picture,
+  drugs,
+  added,
+  onAdd,
+  paper = "bill",
+}: {
+  picture: string;
+  drugs: Drug[];
+  added: string[];
+  onAdd: (drug: Drug, finding: Finding) => void;
+  /** What is in the photo, for the words on screen. */
+  paper?: "bill" | "parcha";
+}) {
   const t = useT();
+  const parcha = paper === "parcha";
   const [state, setState] = useState<"idle" | "reading" | "done" | "failed">("idle");
   const [progress, setProgress] = useState(0);
   const [found, setFound] = useState<Finding[]>([]);
@@ -55,7 +73,7 @@ export function BillReader({ picture, drugs, added, onAdd }: { picture: string; 
       <div className="space-y-2 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-4">
         <button type="button" onClick={() => void read()} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-[#232326] bg-white text-lg font-bold shadow-[0_3px_0_#232326]">
           <ScanText className="size-6" aria-hidden />
-          {t("Read the bill on this phone", "इसी फ़ोन पर बिल पढ़ें", "Isi phone par bill padhein")}
+          {parcha ? t("Read the Parcha on this phone", "इसी फ़ोन पर पर्चा पढ़ें", "Isi phone par Parcha padhein") : t("Read the bill on this phone", "इसी फ़ोन पर बिल पढ़ें", "Isi phone par bill padhein")}
         </button>
         <p className="text-base leading-snug">
           {t(
@@ -77,7 +95,7 @@ export function BillReader({ picture, drugs, added, onAdd }: { picture: string; 
     return (
       <div role="status" className="flex items-center gap-3 rounded-2xl border-[3px] border-[#232326] bg-[var(--brand-soft)] p-4 text-lg font-bold">
         <Loader2 className="size-6 animate-spin" aria-hidden />
-        {t("Reading the bill…", "बिल पढ़ रहे हैं…", "Bill padh rahe hain…")} {Math.round(progress * 100)}%
+        {parcha ? t("Reading the Parcha…", "पर्चा पढ़ रहे हैं…", "Parcha padh rahe hain…") : t("Reading the bill…", "बिल पढ़ रहे हैं…", "Bill padh rahe hain…")} {Math.round(progress * 100)}%
       </div>
     );
   }
@@ -138,7 +156,7 @@ export function BillReader({ picture, drugs, added, onAdd }: { picture: string; 
                 <button
                   type="button"
                   disabled={isAdded}
-                  onClick={() => onAdd(f.drug)}
+                  onClick={() => onAdd(f.drug, f)}
                   className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border-[3px] border-[#232326] bg-[var(--brand)] text-base font-bold disabled:bg-white"
                 >
                   <Check className="size-4" strokeWidth={3} aria-hidden /> {isAdded ? t("Added", "जुड़ गई", "Jud gayi") : t("Add", "जोड़ें", "Jodein")}

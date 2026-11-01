@@ -141,7 +141,8 @@ async function startCall(job: JobDoc & { id: string }): Promise<boolean> {
   try {
     const placed = await provider().place({
       to: job.toNumber ?? job.ownerPhone, script: job.script, language: job.language, jobId: job.id,
-      gather: job.purpose !== "verify",
+      // Nothing is asked on any call: a reminder is said once and answered in the app.
+      gather: false,
     });
     // A code read out needs no answer: it is finished once it has been said.
     await ref.update({ status: job.purpose === "verify" && provider().name === "mock" ? "done" : "ringing", providerCallId: placed.providerCallId, updatedAt: iso() });

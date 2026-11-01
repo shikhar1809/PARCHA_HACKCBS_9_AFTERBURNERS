@@ -19,7 +19,7 @@
  * spelt exactly and with proof on the same line: a strength the medicine comes
  * in ("PAN 40") or the word for its form ("ORS SACHET").
  */
-import type { Drug } from "./types.js";
+import type { Drug, Timing } from "./types.js";
 
 /** A word or line as the reader returned it, with where it sits on the photo (in pixels). */
 export type Box = { x0: number; y0: number; x1: number; y1: number };
@@ -131,4 +131,45 @@ export function medicinesIn(lines: ReadLine[], drugs: Drug[]): Finding[] {
  */
 export function stripShows(lines: ReadLine[], drug: Drug): Finding | null {
   return medicinesIn(lines, [drug])[0] ?? null;
+}
+
+/** What a printed prescription line says about taking the medicine, where it says it. */
+export type DoseOnLine = {
+  /** "1-0-1", "0-0-1", "SOS"; null when the line does not say. */
+  frequency: string | null;
+  timing: Timing | null;
+  days: number | null;
+};
+
+const SLOTS = /\b([0-2])\s*[-–]\s*([0-2])\s*[-–]\s*([0-2])\b/;
+const SAID: [RegExp, string][] = [
+  [/\b(?:OD|once\s+(?:a\s+)?daily)\b/i, "1-0-0"],
+  [/\b(?:BD|BID|twice\s+(?:a\s+)?daily)\b/i, "1-0-1"],
+  [/\b(?:TDS|TID|thrice\s+(?:a\s+)?daily)\b/i, "1-1-1"],
+  [/\bHS\b|\bat\s+bed\s*time\b/i, "0-0-1"],
+  [/\bSOS\b|\bwhen\s+needed\b/i, "SOS"],
+];
+
+/**
+ * Reads the times, food and days off one printed line ("Dolo 650  1-0-1  after
+ * food  x 5 days"), and only what is printed there.
+ *
+ * A printed Parcha puts the dose on the same line as the name, so the line the
+ * name was found on is the place to look. Anything not written is left null for
+ * the person to fill in: a printed slip that does not say "after food" is not
+ * read as saying it. The person still confirms every medicine afterwards.
+ */
+export function doseOnLine(text: string): DoseOnLine {
+  const slots = text.match(SLOTS);
+  const frequency = slots ? `${slots[1]}-${slots[2]}-${slots[3]}` : (SAID.find(([re]) => re.test(text))?.[1] ?? null);
+  const timing: Timing | null = /\b(?:after\s+(?:food|meals?)|A\/?F|PC)\b|खाने\s*के\s*बाद/i.test(text)
+    ? "after_food"
+    : /\b(?:before\s+(?:food|meals?)|B\/?F|AC)\b|खाने\s*से\s*पहले/i.test(text)
+      ? "before_food"
+      : /\bempty\s+stomach\b|खाली\s*पेट/i.test(text)
+        ? "empty_stomach"
+        : null;
+  const d = text.match(/(?:x|for|×)?\s*(\d{1,3})\s*(?:days?|din|दिन)\b/i);
+  const days = d && Number(d[1]) > 0 && Number(d[1]) <= 180 ? Number(d[1]) : null;
+  return { frequency, timing, days };
 }

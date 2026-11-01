@@ -38,6 +38,8 @@ export async function shrinkPhoto(file: File, max = 640): Promise<string> {
 export function useStrip(medicine: string | null | undefined): Strip | null {
   const [strip, setStrip] = useState<Strip | null>(null);
   useEffect(() => {
+    // A new medicine starts empty, never showing the last one's pictures.
+    setStrip(null);
     if (!medicine) return;
     let live = true;
     const load = () => void vaultGet<Strip>(keyFor(medicine)).then((s) => live && setStrip(s ?? null));

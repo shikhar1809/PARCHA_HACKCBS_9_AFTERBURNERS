@@ -53,6 +53,7 @@ function clean(input: unknown, phone: string): Clean {
       src && typeof src.visitId === "string"
         ? { visitId: src.visitId.slice(0, 40), drugId: typeof src.drugId === "string" ? src.drugId.slice(0, 40) : null }
         : null,
+    locked: r.locked === true,
   };
 }
 
@@ -88,6 +89,18 @@ export const saveReminders = onCall(async (request) => {
       if (!(await wanted.get()).exists) ref = wanted;
     }
     const { id: _ignored, ...fields } = c;
+    // A locked reminder keeps the times that were checked. The only change it
+    // takes is an end date no later than its own, which is how a newer Parcha
+    // replaces it while keeping its history.
+    const stored = existing.docs.find((d) => d.id === ref.id)?.data();
+    if (stored?.locked === true) {
+      const end = fields.endDate as string | null;
+      const was = (stored.endDate as string | null) ?? null;
+      if (!end || (was && end > was)) continue;
+      batch.set(ref, { endDate: end, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      ids.push(ref.id);
+      continue;
+    }
     batch.set(ref, { ...fields, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     ids.push(ref.id);
   }
@@ -102,6 +115,9 @@ export const deleteReminder = onCall(async (request) => {
   const snap = await ref.get();
   if (!snap.exists || snap.data()?.ownerPhone !== phone) {
     throw new HttpsError("not-found", "No such reminder.");
+  }
+  if (snap.data()?.locked === true) {
+    throw new HttpsError("failed-precondition", "This schedule is locked. A new Parcha replaces it.");
   }
   await ref.delete();
   return { ok: true };

@@ -74,3 +74,11 @@ test("a strip photo shows the medicine's name, or says it does not", () => {
   assert.equal(stripShows([line("Crocin 650 Paracetamol Tablets IP", 0)], para)?.sure, true);
   assert.equal(stripShows([line("Pantoprazole Gastro-resistant Tablets", 0)], para), null);
 });
+
+test("a printed line gives its times, food and days, and nothing it does not say", async () => {
+  const { doseOnLine } = await import("../src/reading.js");
+  assert.deepEqual(doseOnLine("Dolo 650 Tab   1-0-1   After food   x 5 days"), { frequency: "1-0-1", timing: "after_food", days: 5 });
+  assert.deepEqual(doseOnLine("Pantoprazole 40mg OD before food 14 days"), { frequency: "1-0-0", timing: "before_food", days: 14 });
+  assert.deepEqual(doseOnLine("Cetirizine 10 HS"), { frequency: "0-0-1", timing: null, days: null });
+  assert.deepEqual(doseOnLine("Paracetamol 500"), { frequency: null, timing: null, days: null });
+});

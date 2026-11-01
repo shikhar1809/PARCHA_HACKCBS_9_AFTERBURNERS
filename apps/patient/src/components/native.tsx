@@ -11,9 +11,12 @@
  *     ("heads-up") and shows on the lock screen;
  *   - our own chime and a long vibration, not the default blip;
  *   - the medicine, the person and the time on it, and a larger icon;
- *   - two buttons, Taken and Later, so the answer is one tap;
- *   - a second, nagging reminder ten minutes later, and a third after twenty-five,
- *     which disappear on their own once the dose is ticked off.
+ *   - no answer buttons on it: tapping it opens the app on the dose cards,
+ *     where each medicine is answered against the photo of its strip. A
+ *     "Taken" in the tray is a tap on words; a "Taken" under the strip is a
+ *     look at the tablet in her hand, which is the check that matters;
+ *   - one follow-up thirty minutes later, which disappears on its own once the
+ *     dose is ticked off, and moves when she says "not taken".
  *
  * The schedule is rebuilt whenever the reminders change, and a dose that is
  * ticked off is taken out of it, so you are not reminded about what you have
@@ -27,19 +30,19 @@ import { useNavigate } from "react-router-dom";
 
 import { useHandset } from "../auth";
 import { clockIn, currentLang, personLang, tr } from "../i18n";
-import { alertsOn } from "./alerts";
+import { alertsOn, NOT_TAKEN_MINUTES } from "./alerts";
 
 export const isNative = Capacitor.isNativePlatform();
 
 const CHANNEL = "doses";
 const SOUND = "dose_chime.wav";
-const ACTIONS = "DOSE";
 /** Phones cap how many alarms an app may hold; the soonest of the coming days is plenty. */
 const MAX_SCHEDULED = 60;
 const DAYS_AHEAD = 3;
-/** The follow-up nags, in minutes after the dose time. */
-const NAGS = [10, 25];
-const SNOOZE_MINUTES = 10;
+/** The follow-up, in minutes after the dose time: the same thirty as "not taken". */
+const NAGS = [NOT_TAKEN_MINUTES];
+/** The id salt of a follow-up asked for with "not taken". */
+const FOLLOW_UP = 9;
 
 /** A stable positive 31-bit number for a dose on a day, which is what a notification id must be. */
 function notificationId(date: string, key: string, salt = 0): number {
@@ -90,7 +93,7 @@ function content(dose: Dose, nag: number) {
       `${name}${detail}`,
       `${who} · ${when}`,
       nag === 0
-        ? tr(lang, "Tap Taken when you have had it.", "लेने के बाद \"ले ली\" दबाएँ।", "Lene ke baad \"Le li\" dabayein.")
+        ? tr(lang, "Tap to see the strip to take.", "कौन-सा पत्ता लेना है, देखने के लिए छुएँ।", "Kaun sa patta lena hai, dekhne ke liye chhuein.")
         : tr(lang, "This dose has not been ticked off yet.", "यह खुराक अभी तक नहीं ली गई।", "Yeh dose abhi tak nahi li gayi."),
     ].join("\n"),
     summaryText: tr(lang, "Parcha medicine reminder", "Parcha दवा की याद", "Parcha dawai reminder"),
@@ -99,7 +102,7 @@ function content(dose: Dose, nag: number) {
 
 async function setUp() {
   const ln = await plugin();
-  await ln.createChannel({
+  return ln.createChannel({
     id: CHANNEL,
     name: "Medicine reminders",
     description: "Tells you when it is time to take a medicine",
@@ -110,18 +113,39 @@ async function setUp() {
     lightColor: "#FF7F5A",
     visibility: 1,
   });
-  await ln.registerActionTypes({
-    types: [
-      {
-        id: ACTIONS,
-        actions: [
-          { id: "taken", title: tr(currentLang(), "✓ Taken", "✓ ले ली", "✓ Le li") },
-          { id: "snooze", title: tr(currentLang(), `Later (${SNOOZE_MINUTES} min)`, `बाद में (${SNOOZE_MINUTES} मिनट)`, `Baad mein (${SNOOZE_MINUTES} min)`) },
-        ],
-      },
-    ],
-  });
-  return ln;
+}
+
+/** Ticked off on the cards: the follow-ups for that dose are not needed. */
+export async function doseDoneNative(date: string, key: string): Promise<void> {
+  if (!isNative) return;
+  const ln = await plugin();
+  const ids = [...NAGS.map((_, i) => notificationId(date, key, i + 1)), notificationId(date, key, FOLLOW_UP)];
+  await ln.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => undefined);
+}
+
+/** "Not taken": ask again in thirty minutes from now, instead of at the fixed follow-up. */
+export async function followUpNative(dose: Dose, date: string, minutes: number): Promise<void> {
+  if (!isNative) return;
+  await doseDoneNative(date, dose.key);
+  const ln = await plugin();
+  await ln
+    .schedule({
+      notifications: [
+        {
+          id: notificationId(date, dose.key, FOLLOW_UP),
+          ...content(dose, 1),
+          channelId: CHANNEL,
+          sound: SOUND,
+          smallIcon: "ic_stat_parcha",
+          largeIcon: "ic_notify_large",
+          iconColor: "#FF7F5A",
+          autoCancel: true,
+          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true },
+          extra: { key: dose.key, date, route: "/dose" },
+        },
+      ],
+    })
+    .catch(() => undefined);
 }
 
 /** Keeps the phone's alarms in step with the reminders, and answers the buttons. Renders nothing. */
@@ -181,11 +205,10 @@ export function NativeReminders() {
           smallIcon: "ic_stat_parcha",
           largeIcon: "ic_notify_large",
           iconColor: "#FF7F5A",
-          actionTypeId: ACTIONS,
           autoCancel: true,
           group: `dose-${date}-${dose.time}`,
           schedule: { at, allowWhileIdle: true },
-          extra: { key: dose.key, date, time: dose.time, title: dose.reminder.title, who: dose.reminder.personName, detail: dose.reminder.detail, route: "/schedule" },
+          extra: { key: dose.key, date, time: dose.time, title: dose.reminder.title, who: dose.reminder.personName, detail: dose.reminder.detail, route: "/dose" },
         })),
       });
     })().catch((e) => console.warn("[parcha] could not schedule reminders", e));
@@ -195,39 +218,20 @@ export function NativeReminders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, reminders.loading]);
 
-  // What the buttons do. Tapping the body opens the schedule.
+  // Tapping a reminder opens the dose cards. ("taken" only comes from
+  // notifications scheduled by an older build, which still had the button.)
   useEffect(() => {
     if (!isNative) return;
     let remove: (() => void) | undefined;
     plugin()
       .then((ln) =>
         ln.addListener("localNotificationActionPerformed", async (e) => {
-          const extra = (e.notification.extra ?? {}) as { key?: string; date?: string; title?: string; who?: string; detail?: string | null };
+          const extra = (e.notification.extra ?? {}) as { key?: string; date?: string };
           if (e.actionId === "taken" && extra.key && extra.date) {
             await markDose(extra.date, extra.key, true).catch(() => undefined);
-            // The dose is done: its follow-up nags go with it.
-            const nags = NAGS.map((_, i) => notificationId(extra.date!, extra.key!, i + 1));
-            await ln.cancel({ notifications: nags.map((id) => ({ id })) }).catch(() => undefined);
-          } else if (e.actionId === "snooze" && extra.key && extra.date) {
-            const base = { key: extra.key, date: extra.date };
-            await ln.schedule({
-              notifications: [
-                {
-                  id: notificationId(extra.date, extra.key, 9),
-                  title: `💊 Time for ${extra.title ?? "your medicine"}`,
-                  body: `${(extra.who ?? "").split(" ")[0]} · you asked to be reminded`,
-                  channelId: CHANNEL,
-                  sound: SOUND,
-                  smallIcon: "ic_stat_parcha",
-                  largeIcon: "ic_notify_large",
-                  actionTypeId: ACTIONS,
-                  schedule: { at: new Date(Date.now() + SNOOZE_MINUTES * 60_000), allowWhileIdle: true },
-                  extra: { ...extra, ...base },
-                },
-              ],
-            }).catch(() => undefined);
+            await doseDoneNative(extra.date, extra.key);
           } else {
-            navigate("/schedule");
+            navigate("/dose");
           }
         }),
       )

@@ -54,20 +54,15 @@ test("only medicines are phoned about, not appointments", () => {
   assert.equal(due.length, 0);
 });
 
-test("scripts say the time, the medicines and both key presses", () => {
-  const en = buildScript("en", "14:00", [{ title: "Paracetamol", personName: "Prashant" }, { title: "Metformin", personName: "Prashant" }]);
-  assert.match(en, /2 pm/);
-  assert.match(en, /Paracetamol and Metformin/);
-  assert.match(en, /press 1/);
-  assert.match(en, /press 2/);
+test("a call says one sentence and the medicines, and asks for nothing", () => {
   const hi = buildScript("hi", "21:00", [{ title: "Paracetamol", personName: "Prashant" }]);
-  assert.match(hi, /रात के 9 बजे/);
-  assert.match(hi, /Paracetamol/);
-  assert.match(hi, /एक दबाइए/);
+  assert.equal(hi, "आपकी दवाई का समय हो गया। Paracetamol।");
+  const en = buildScript("en", "14:00", [{ title: "Paracetamol", personName: "Prashant" }, { title: "Metformin", personName: "Prashant" }]);
+  assert.equal(en, "It is time for your medicine. Paracetamol and Metformin.");
+  assert.doesNotMatch(en + hi, /press|दबाइए/);
 });
 
-test("a second attempt says so, and two people are told apart", () => {
-  assert.match(buildScript("en", "14:00", [{ title: "A", personName: "X" }], 2), /called a little while ago/);
+test("two people on one call are told apart", () => {
   const two = buildScript("en", "14:00", [{ title: "A", personName: "Prashant" }, { title: "B", personName: "Prabha Devi" }]);
   assert.match(two, /Prashant: A/);
   assert.match(two, /Prabha: B/);

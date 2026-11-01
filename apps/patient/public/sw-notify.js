@@ -21,7 +21,7 @@ self.addEventListener("notificationclick", (event) => {
         return;
       }
       const query = action ? `?dose=${action}&key=${encodeURIComponent(key || "")}&date=${encodeURIComponent(date || "")}` : "";
-      await self.clients.openWindow(`/schedule${query}`);
+      await self.clients.openWindow(`/dose${query}`);
     })(),
   );
 });

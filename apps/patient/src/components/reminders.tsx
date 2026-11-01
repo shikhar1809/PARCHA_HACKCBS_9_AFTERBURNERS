@@ -5,7 +5,7 @@ import {
   type Reminder,
   type ReminderKind,
 } from "@parcha/core";
-import { Bell, CalendarCheck, Loader2, Pencil, Pill, Plus, Stethoscope, Trash2, X, type LucideIcon } from "lucide-react";
+import { Bell, CalendarCheck, Loader2, Lock, Pencil, Pill, Plus, Stethoscope, Trash2, X, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Avatar } from "./art";
@@ -325,6 +325,11 @@ export function ManageReminders({
                     </p>
                     {people.length > 1 ? <p className="text-base">{r.personName}</p> : null}
                   </div>
+                  {r.locked ? (
+                    <span aria-label={t("Locked", "लॉक है", "Locked hai")} className="flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-[#232326] bg-white">
+                      <Lock className="size-5" aria-hidden />
+                    </span>
+                  ) : (
                   <button
                     type="button"
                     role="switch"
@@ -343,7 +348,18 @@ export function ManageReminders({
                       style={{ left: r.enabled ? "1.6rem" : "0.15rem", transition: "left 200ms var(--ease-spring)" }}
                     />
                   </button>
+                  )}
                 </div>
+                {/* A checked schedule is not changed by hand: a newer Parcha replaces it. */}
+                {r.locked ? (
+                  <p className="mt-2.5 rounded-xl border-2 border-[#232326] bg-[var(--brand-soft)] p-2.5 text-base leading-snug">
+                    {t(
+                      "Checked and locked. To change it, add the new Parcha.",
+                      "जाँचा हुआ और लॉक। बदलने के लिए नया पर्चा जोड़ें।",
+                      "Jaancha hua aur locked. Badalne ke liye naya Parcha jodein.",
+                    )}
+                  </p>
+                ) : (
                 <div className="mt-2.5 grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -361,6 +377,7 @@ export function ManageReminders({
                     <Trash2 className="size-4" aria-hidden /> {t("Delete", "मिटाएँ", "Mitayein")}
                   </button>
                 </div>
+                )}
               </li>
             );
           })}
