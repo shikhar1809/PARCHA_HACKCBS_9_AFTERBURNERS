@@ -168,6 +168,49 @@ test("the most a day: paracetamol 650 four times is fine, 1 g four times is not"
   assert.equal(over[0].evidence.mgPerDay, 5000);
 });
 
+test("the same medicine on two lines is added up, and flagged once", () => {
+  // 650 four times is 2,600 and 500 three times is 1,500: each line is within
+  // the 4,000 mg a day, and together they are 4,100.
+  const each = [dosed("paracetamol", "650 mg", "1-1-1-1"), dosed("paracetamol", "500 mg", "1-1-1")];
+  for (const one of each) assert.equal(run({ items: [one], patient: adult }).filter((f) => f.rule === "drug_dose").length, 0);
+  const both = run({ items: each, patient: adult }).filter((f) => f.rule === "drug_dose");
+  assert.equal(both.length, 1, "one flag for the medicine, not one for each line");
+  assert.equal(both[0].severity, "high");
+  assert.equal(both[0].evidence.mgPerDay, 4100);
+  assert.equal(both[0].evidence.lines, 2);
+  assert.match(both[0].message, /across 2 lines of paracetamol/i);
+});
+
+test("two lines that come to less than the most a day are left alone", () => {
+  const flags = run({
+    items: [dosed("paracetamol", "650 mg", "1-0-1"), dosed("paracetamol", "500 mg", "1-0-0")],
+    patient: adult,
+  });
+  assert.equal(flags.filter((f) => f.rule === "drug_dose").length, 0);
+});
+
+test("a line whose dose cannot be read adds nothing, and the flag says how many were counted", () => {
+  const flags = run({
+    items: [dosed("paracetamol", "1 g", "1-1-1-1-1"), dosed("paracetamol", "325 mg + 37.5 mg", "1-0-1")],
+    patient: adult,
+  }).filter((f) => f.rule === "drug_dose");
+  assert.equal(flags.length, 1);
+  assert.equal(flags[0].evidence.mgPerDay, 5000, "the combination line is not guessed at");
+  assert.equal(flags[0].evidence.lines, 2);
+  assert.equal(flags[0].evidence.linesChecked, 1);
+});
+
+test("a child's two lines of the same syrup are added before the weight sum", () => {
+  // One spoon three times is 375 mg, which 10 kg allows twice over (600 mg);
+  // the same syrup written twice is 750 mg, or 75 mg/kg against a most of 60.
+  const line = dosed("paracetamol", "125 mg/5 ml", "1-1-1", "syrup");
+  const child = { ageYears: 2, sex: "female" as const, pregnancy: null };
+  const flags = run({ items: [line, { ...line }], vitals: vitals({ weightKg: 10 }), patient: child }).filter((f) => f.rule === "drug_dose");
+  assert.equal(flags.length, 1);
+  assert.equal(flags[0].counterpartRef, "dose_child");
+  assert.equal(Math.round(flags[0].evidence.mgPerKgDay as number), 75);
+});
+
 test("a child's dose goes by weight, read per 5 ml spoon of syrup", () => {
   // 125 mg/5 ml, two spoons four times a day = 1000 mg; 10 kg allows 600.
   const flags = run({

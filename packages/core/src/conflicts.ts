@@ -39,7 +39,7 @@
  * not "safe".
  */
 
-import { isUnlisted, mgPerDay, mgPerDose, SPECIAL, SPOON_ML } from "./special.js";
+import { dailyByDrug, isUnlisted, mgPerDose, SPECIAL, SPOON_ML } from "./special.js";
 import type {
   Allergy,
   Conflict,
@@ -54,7 +54,7 @@ import type {
 } from "./types.js";
 
 /** Stamped on every conflict. Change it whenever a rule changes. */
-export const ENGINE_VERSION = "1.1.0";
+export const ENGINE_VERSION = "1.2.0";
 
 /** Everything the three rules need, gathered by the caller. */
 export type ConflictEngineInput = {
@@ -120,7 +120,12 @@ export function runConflictEngine(input: ConflictEngineInput): DetectedConflict[
   const out: DetectedConflict[] = [];
 
   const nameOf = (id: string, fallback?: string) => byId.get(id)?.genericName ?? fallback ?? id;
+  // One line per medicine, for the rules that are about the medicine itself: an
+  // allergy or a pregnancy caution fires once however many lines carry the drug.
   const written = items.filter((i, idx) => items.findIndex((j) => j.drugId === i.drugId) === idx);
+  // The dose rules are the exception — they must add every line up, so they read
+  // this instead of the one line above (special.ts explains why).
+  const daily = dailyByDrug(items);
 
   // --- drug <-> allergy -----------------------------------------------------
   for (const item of written) {
@@ -263,27 +268,33 @@ export function runConflictEngine(input: ConflictEngineInput): DetectedConflict[
         flag(drug, "drug_age", sp.minAge.severity, "age", `age ${age}`, sp.minAge.note, { ageYears: age, minAgeYears: sp.minAge.years, limit: years(sp.minAge.years) });
       }
 
-      const daily = mgPerDay(item);
+      // Every line of this medicine, added up: what the patient actually takes.
+      const dose = daily.get(item.drugId) ?? { mgPerDay: null, lines: 1, checked: 0 };
+      const mgDay = dose.mgPerDay;
       const perDose = mgPerDose(item);
       const spoon = item.form === "syrup" ? ` (counting each dose as one ${SPOON_ML} ml spoon)` : "";
+      // Said on the flag when more than one line carries the medicine, or the
+      // number would not match the line the doctor is looking at.
+      const across = dose.lines > 1 ? ` across ${dose.lines} lines of ${drug.genericName}` : "";
+      const counted = { mgPerDay: mgDay, lines: dose.lines, linesChecked: dose.checked };
       if (child && sp.childMgPerKgDay) {
-        if (weight && daily !== null) {
-          const perKg = daily / weight;
+        if (weight && mgDay !== null) {
+          const perKg = mgDay / weight;
           if (perKg > sp.childMgPerKgDay * 1.05) {
             flag(drug, "drug_dose", "high", "dose_child", `${Math.round(perKg)} mg/kg a day`,
-              `${Math.round(daily)} mg a day for ${weight} kg is ${Math.round(perKg)} mg/kg a day${spoon}. The most for a child is ${sp.childMgPerKgDay} mg/kg a day (${Math.round(sp.childMgPerKgDay * weight)} mg). Check the strength and how often.`,
-              { mgPerDay: daily, mgPerDose: perDose, weightKg: weight, mgPerKgDay: perKg, maxMgPerKgDay: sp.childMgPerKgDay });
+              `${Math.round(mgDay)} mg a day${across} for ${weight} kg is ${Math.round(perKg)} mg/kg a day${spoon}. The most for a child is ${sp.childMgPerKgDay} mg/kg a day (${Math.round(sp.childMgPerKgDay * weight)} mg). Check the strength and how often.`,
+              { ...counted, mgPerDose: perDose, weightKg: weight, mgPerKgDay: perKg, maxMgPerKgDay: sp.childMgPerKgDay });
           }
-        } else if (!weight && daily !== null) {
+        } else if (!weight && mgDay !== null) {
           flag(drug, "drug_dose", "caution", "weight_missing", "no weight today",
             `A child's dose of ${drug.genericName} goes by weight, and no weight was recorded today, so the dose was not checked. Weigh the child (the most is ${sp.childMgPerKgDay} mg/kg a day).`,
-            { mgPerDay: daily, maxMgPerKgDay: sp.childMgPerKgDay });
+            { ...counted, maxMgPerKgDay: sp.childMgPerKgDay });
         }
       }
-      if (sp.maxMgDay && daily !== null && daily > sp.maxMgDay * 1.0001) {
-        flag(drug, "drug_dose", "high", "dose_max", `${Math.round(daily)} mg a day`,
-          `${Math.round(daily)} mg a day${spoon} is more than the most a day, ${sp.maxMgDay} mg. Check the strength and how often.`,
-          { mgPerDay: daily, mgPerDose: perDose, maxMgDay: sp.maxMgDay });
+      if (sp.maxMgDay && mgDay !== null && mgDay > sp.maxMgDay * 1.0001) {
+        flag(drug, "drug_dose", "high", "dose_max", `${Math.round(mgDay)} mg a day`,
+          `${Math.round(mgDay)} mg a day${across}${spoon} is more than the most a day, ${sp.maxMgDay} mg. Check the strength and how often.`,
+          { ...counted, mgPerDose: perDose, maxMgDay: sp.maxMgDay });
       }
 
       if (who.pregnancy === "pregnant" && sp.pregnancy) {
