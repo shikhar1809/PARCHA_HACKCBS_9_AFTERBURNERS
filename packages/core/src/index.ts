@@ -46,3 +46,4 @@ export * from "./share.js";
 export * from "./shareCrypto.js";
 export * from "./deviceBackup.js";
 export * from "./photoQuality.js";
+export * from "./expiry.js";
