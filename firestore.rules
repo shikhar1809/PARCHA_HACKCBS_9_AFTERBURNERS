@@ -267,27 +267,15 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     // Visits
     //
-    // Read by the clinic, by the household the visit belongs to, or by
-    // whoever holds a live access code for it. Never written from a client:
+    // Read by the clinic, and only by the clinic. Never written from a client:
     // the stage is a cursor that only the Cloud Functions move.
+    //
+    // A patient's handset reads nothing here. It holds the family's own copy —
+    // the Parchas they scanned, their reminders, their papers — and the
+    // prescription crosses from clinic to phone the way the paper does: the
+    // signed QR on the printed Parcha, scanned at home. So a clinic's records
+    // never sit on a handset the clinic has no control over.
     // ---------------------------------------------------------------------
-
-    // A visit redeemed from a printed code records the handset it was linked
-    // to, in `linkedPhones`. Linking happens in the `linkVisitByCode` Cloud
-    // Function, which is where the code's expiry and revocation are checked —
-    // server-side with the Admin SDK, so a client cannot skip it. The rule
-    // then only has to honour the link that redemption left behind, which
-    // costs no extra read and leaves an explicit record of who was granted
-    // what.
-    function linkedToCaller(data) {
-      return signedIn()
-        && callerPhone() != ''
-        && data.get('linkedPhones', []).hasAny([callerPhone()]);
-    }
-
-    function mayReadVisit(data) {
-      return atMyHospital(data) || phoneMatches(data.patientPhone) || linkedToCaller(data);
-    }
 
     // The clinical record of a visit — what was measured, what was complained
     // of, what was prescribed, what the safety check said, what was given out
@@ -308,7 +296,7 @@ service cloud.firestore {
     }
 
     match /visits/{visitId} {
-      allow read: if mayReadVisit(resource.data);
+      allow read: if atMyHospital(resource.data);
       allow write: if false;
 
       // Every sub-collection below is append-only and client-unwritable. The
@@ -447,6 +435,31 @@ service cloud.firestore {
     match /activity/{id} {
       allow read: if atMyHospital(resource.data) && canReadActivity();
       allow write: if false;
+    }
+
+    // Every Meko call the server really made: what the swarm board draws.
+    // Readable by whoever can see the activity log, because it is the same
+    // kind of thing — a record of what happened, not a record about a
+    // patient. Written only by the server, like everything else.
+    match /mekoCalls/{id} {
+      allow read: if atMyHospital(resource.data) && canReadActivity();
+      allow write: if false;
+    }
+
+    // Patterns waiting for a doctor to approve as clinic canon. Only someone
+    // with Manage decides, and only through the mekoPromote callable.
+    match /mekoNominations/{id} {
+      allow read: if atMyHospital(resource.data) && 'manage' in request.auth.token.get('abilities', []);
+      allow write: if false;
+    }
+
+    // The fifteen-minute links a family gives a doctor. Server only, and not
+    // because the contents are secret to it — what is stored is a box the
+    // family's phone sealed with a key made from a PIN this server never sees
+    // — but because the clock, the attempt count and the revoke must be the
+    // server's word, not a client's. `openShare` is the only way in.
+    match /historyShares/{username} {
+      allow read, write: if false;
     }
 
     // Anything not named above is denied. Listed explicitly so a new
