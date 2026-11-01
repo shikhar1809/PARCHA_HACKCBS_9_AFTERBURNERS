@@ -61,7 +61,7 @@ Before the clinic app (web or desktop) shows anything, it opens a **session**:
 
 Every action a doctor may need to account for is written by the server as a sentence, with the time, the address it came from and where the device was. For example:
 
-> Rekha (management) took Sunita Devi's vitals (BP 158/94, pulse 92, sugar 312) and sent them to Dr. A. Khan. · At the clinic · 49.36.x.x
+> Rekha (management) took Priya's vitals (BP 158/94, pulse 92, sugar 312) and sent them to Dr. A. Khan. · At the clinic · 49.36.x.x
 
 Logged: sessions opened, signed out and ended (with why); patients registered; visits started; vitals sent; consultations started; prescriptions signed (with the medicines, any safety warnings that were read and accepted, and whether it was signed offline); requests asked for, accepted, declined, cancelled and passed on; check-ins, bring lists, reschedules, hand-overs and no-shows; doctors' availability; and team changes. Clients can never write it; **doctors and the admin** of the same hospital can read it (the Activity screen). The older `audit` collection stays as a machine record nobody can read from a client.
 
