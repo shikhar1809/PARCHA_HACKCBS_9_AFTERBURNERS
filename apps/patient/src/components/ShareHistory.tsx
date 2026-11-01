@@ -42,7 +42,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useHandset } from "../auth";
 import { useNow } from "./alerts";
 import { useT } from "../i18n";
-import { PinPad } from "./pin";
+import { checkPin, hasPin, PinPad, setPin } from "./pin";
 import { Sheet } from "./records";
 import type { Person } from "./people";
 
@@ -97,6 +97,7 @@ export function ShareHistory({ person, parchas, onClose }: { person: Person; par
   const [share, setShare] = useState<ShareState | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   const payload = useMemo(() => build(person, history, parchas, note), [person, history, parchas, note]);
   const online = navigator.onLine;
@@ -119,6 +120,30 @@ export function ShareHistory({ person, parchas, onClose }: { person: Person; par
   useEffect(() => {
     if (share && shareCountdown(share.expiresAt, now) === "0:00") setShare(null);
   }, [share, now]);
+
+  /**
+   * The phone has one PIN, and this is where a family meets it.
+   *
+   * The first time, the four digits they choose are kept on the phone (the
+   * same PIN that guards the simple screen), so there is one number to
+   * remember rather than two. Afterwards it is checked before anything is
+   * drawn or sealed — a phone left on a table should not hand a person's
+   * history to whoever picks it up. For a link those same digits are the key
+   * the summary is sealed with, so the doctor cannot open it without being
+   * told them.
+   */
+  async function usePin(pin: string) {
+    setPinError(null);
+    if (hasPin()) {
+      if (!(await checkPin(pin))) {
+        setPinError(t("That PIN is not right.", "यह PIN सही नहीं है।", "Yeh PIN sahi nahi hai."));
+        return;
+      }
+    } else {
+      await setPin(pin);
+    }
+    await (way === "link" ? makeLink(pin) : makeCode(pin));
+  }
 
   async function makeLink(pin: string) {
     setBusy(true);
@@ -322,9 +347,15 @@ export function ShareHistory({ person, parchas, onClose }: { person: Person; par
             </p>
           ) : (
             <PinPad
-              title={t("Choose a PIN for this", "इसके लिए PIN चुनें", "Iske liye PIN chunein")}
+              title={hasPin() ? t("Your PIN", "आपका PIN", "Aapka PIN") : t("Choose a PIN", "PIN चुनें", "PIN chunein")}
               hint={
-                way === "link"
+                !hasPin()
+                  ? t(
+                      "Four digits for this phone. You will tell them to the doctor, and they also unlock the simple screen.",
+                      "इस फ़ोन के लिए चार अंक। यही डॉक्टर को बताएँगे, और इन्हीं से आसान स्क्रीन भी खुलती है।",
+                      "Is phone ke liye chaar ank. Yahi doctor ko batayenge, aur inhi se simple screen bhi khulti hai.",
+                    )
+                  : way === "link"
                   ? t(
                       "Tell the doctor these four digits. They are the key: without them the link opens nothing, and nobody else holds them.",
                       "ये चार अंक डॉक्टर को बताएँ। यही चाबी है: इनके बिना लिंक कुछ नहीं खोलता, और किसी और के पास ये नहीं हैं।",
@@ -336,8 +367,9 @@ export function ShareHistory({ person, parchas, onClose }: { person: Person; par
                       "Taki aapka phone uthane wala koi aur code na bana le.",
                     )
               }
-              onDone={(pin) => void (way === "link" ? makeLink(pin) : makeCode(pin))}
+              onDone={(pin) => void usePin(pin)}
               onCancel={() => setWay(null)}
+              error={pinError}
             />
           )
         ) : null}

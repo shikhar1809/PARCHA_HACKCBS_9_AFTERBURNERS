@@ -1,16 +1,15 @@
 import { Screen } from "@parcha/ui";
 import { useHistories } from "@parcha/client";
-import { FilePlus2, HeartHandshake, HeartPulse, KeyRound, Languages, LogOut, Pencil, Plus, QrCode, ShieldCheck, Users } from "lucide-react";
+import { HeartHandshake, HeartPulse, Languages, LogOut, Pencil, Plus, QrCode, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 
 import { signOutOfPatient, useHandset } from "../auth";
 import { Avatar, DoctorArt } from "../components/art";
 import { useActivePerson, usePeople, type Person } from "../components/people";
 import { MyData, PrivacyNotice } from "../components/privacy";
-import { AddDocument, Sheet } from "../components/records";
+import { Sheet } from "../components/records";
 import { useMemoryParchas } from "../components/memory";
 import { ShareHistory } from "../components/ShareHistory";
-import { hasPin, PinPad, setPin } from "../components/pin";
 import { Health } from "./Records";
 import { ProfileEditor } from "../components/profile-editor";
 import { LangChoice, setLang, useLang, useT } from "../i18n";
@@ -23,7 +22,7 @@ export function Me() {
   const { handset } = useHandset();
   const { people } = usePeople();
   const me = useActivePerson();
-  const [sheet, setSheet] = useState<null | "data" | "privacy" | "health" | "papers" | "pin" | "share">(null);
+  const [sheet, setSheet] = useState<null | "data" | "privacy" | "health" | "share">(null);
   const histories = useHistories(handset?.phone ?? null);
   // Whose health summary: the person using the phone, else whoever is picked in the sheet.
   const [healthFor, setHealthFor] = useState<string | null>(null);
@@ -32,8 +31,6 @@ export function Me() {
   // The person whose papers and history the three tiles below act on.
   const who = me ?? people[0] ?? null;
   const parchas = useMemoryParchas(who?.name ?? null);
-  const [pinSet, setPinSet] = useState(hasPin);
-  const [pinNote, setPinNote] = useState<string | null>(null);
 
   return (
     <>
@@ -99,21 +96,7 @@ export function Me() {
           <span className="text-sm">{t("Illnesses, allergies, regular medicines, blood group", "बीमारियाँ, एलर्जी, रोज़ की दवाइयाँ, ब्लड ग्रुप", "Bimariyan, allergy, roz ki dawaiyan, blood group")}</span>
         </button>
 
-        {/* The three things a family does with their own papers. */}
-        <button
-          type="button"
-          disabled={!who}
-          onClick={() => setSheet("papers")}
-          className="flex min-h-14 flex-col items-center justify-center rounded-2xl border-[3px] border-[#232326] bg-card px-3 py-2 text-center shadow-[0_4px_0_#232326] disabled:opacity-40"
-        >
-          <span className="flex items-center gap-3 text-lg font-bold">
-            <FilePlus2 className="size-6" aria-hidden /> {t("Add a paper", "काग़ज़ जोड़ें", "Kaagaz jodein")}
-          </span>
-          <span className="text-sm">
-            {t("Lab reports, scans, insurance — kept on this phone.", "लैब रिपोर्ट, स्कैन, बीमा — इसी फ़ोन पर।", "Lab report, scan, insurance — isi phone par.")}
-          </span>
-        </button>
-
+        {/* Papers are added on the Parchas tab, where they are read. */}
         <button
           type="button"
           disabled={!who}
@@ -125,24 +108,6 @@ export function Me() {
           </span>
           <span className="text-sm">
             {t("A code the doctor scans to read your history.", "एक कोड, जिसे स्कैन कर डॉक्टर आपका इतिहास पढ़ लें।", "Ek code, jise scan kar doctor aapki history padh lein.")}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setPinNote(null);
-            setSheet("pin");
-          }}
-          className="flex min-h-14 flex-col items-center justify-center rounded-2xl border-[3px] border-[#232326] bg-card px-3 py-2 text-center shadow-[0_4px_0_#232326]"
-        >
-          <span className="flex items-center gap-3 text-lg font-bold">
-            <KeyRound className="size-6" aria-hidden /> {pinSet ? t("Change the PIN", "PIN बदलें", "PIN badlein") : t("Set a PIN", "PIN लगाएँ", "PIN lagayein")}
-          </span>
-          <span className="text-sm">
-            {pinSet
-              ? t("Asked for before the doctor's code is shown.", "डॉक्टर का कोड दिखाने से पहले पूछा जाता है।", "Doctor ka code dikhane se pehle poochha jaata hai.")
-              : t("Keeps the doctor's code from opening on its own.", "डॉक्टर का कोड अपने आप नहीं खुलेगा।", "Doctor ka code apne aap nahi khulega.")}
           </span>
         </button>
 
@@ -180,41 +145,7 @@ export function Me() {
       </Screen>
       {editing ? <ProfileEditor person={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} /> : null}
       {sheet === "data" ? <MyData onClose={() => setSheet(null)} /> : null}
-      {sheet === "papers" && who ? <AddDocument person={who.name} onClose={() => setSheet(null)} /> : null}
       {sheet === "share" && who ? <ShareHistory person={who} parchas={parchas} onClose={() => setSheet(null)} /> : null}
-      {sheet === "pin" ? (
-        <Sheet title={pinSet ? t("Change the PIN", "PIN बदलें", "PIN badlein") : t("Set a PIN", "PIN लगाएँ", "PIN lagayein")} onClose={() => setSheet(null)}>
-          <div className="space-y-3">
-            <PinPad
-              title={t("Choose four digits", "चार अंक चुनें", "Chaar ank chunein")}
-              hint={t("It stays on this phone. Four digits stop an accident, not a determined person holding your phone.", "यह इसी फ़ोन पर रहता है। चार अंक ग़लती रोकते हैं, फ़ोन लेकर बैठे किसी इरादे वाले को नहीं।", "Yeh isi phone par rehta hai. Chaar ank galti rokte hain, phone lekar baithe kisi irade wale ko nahi.")}
-              onDone={(pin) => {
-                void setPin(pin).then(() => {
-                  setPinSet(hasPin());
-                  setSheet(null);
-                });
-              }}
-              onCancel={() => setSheet(null)}
-              error={pinNote}
-            />
-            {pinSet ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void setPin(null).then(() => {
-                    setPinSet(false);
-                    setSheet(null);
-                  });
-                }}
-                className="min-h-12 w-full rounded-xl border-[3px] border-[#232326] bg-card text-base font-bold"
-              >
-                {t("Remove the PIN", "PIN हटाएँ", "PIN hatayein")}
-              </button>
-            ) : null}
-          </div>
-        </Sheet>
-      ) : null}
-      {sheet === "privacy" ? <PrivacyNotice onClose={() => setSheet(null)} /> : null}
       {sheet === "health" && healthPerson ? (
         <Sheet title={t("Health", "सेहत", "Sehat")} onClose={() => setSheet(null)}>
           {!me && people.length > 1 ? (

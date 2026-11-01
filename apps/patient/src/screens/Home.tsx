@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 
 import { useHandset } from "../auth";
 import { Avatar, AvatarStack, PillsArt } from "../components/art";
+import { DoseGrid } from "../components/DoseGrid";
 import { usePeople } from "../components/people";
 import { tr, useLang, useT, type Lang } from "../i18n";
 
@@ -86,6 +87,9 @@ export function Home() {
             </p>
           </div>
         )}
+
+        {/* The weeks, so a course is seen whole and not one day at a time. */}
+        {!reminders.loading && mine.length > 0 ? <DoseGrid reminders={mine} person={active ?? null} /> : null}
 
         <div className="stagger mt-auto grid grid-cols-2 gap-3">
           <Link
