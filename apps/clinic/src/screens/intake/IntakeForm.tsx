@@ -13,7 +13,7 @@ import {
 } from "@parcha/core";
 import { ActionBar, cn } from "@parcha/ui";
 import { AlertTriangle, ChevronDown, Loader2, Send } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Btn, Card, FIELD, Label } from "../../bits";
 import { DoctorPicker, type ChosenDoctor } from "./DoctorPicker";
@@ -63,6 +63,17 @@ export function IntakeForm({
   // Somebody who asked before coming has already said what is wrong, and to
   // which doctor: start from that, and let the desk add to it.
   const [t, setT] = useState<Text>({ ...EMPTY, complaint: visit.complaint ?? "" });
+  // The complaint can also arrive while this screen is open: the patient is at
+  // the waiting-room kiosk saying where it hurts. It is taken only while the
+  // box still holds what we last put there, so a desk that is mid-sentence is
+  // never written over.
+  const seeded = useRef(visit.complaint ?? "");
+  useEffect(() => {
+    const arrived = visit.complaint ?? "";
+    if (arrived === seeded.current) return;
+    setT((now) => (now.complaint === seeded.current ? { ...now, complaint: arrived } : now));
+    seeded.current = arrived;
+  }, [visit.complaint]);
   const [doctor, setDoctor] = useState<ChosenDoctor | null>(null);
   const [sugarType, setSugarType] = useState<SugarReading | null>(null);
   const [attempted, setAttempted] = useState(false);
