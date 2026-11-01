@@ -42,8 +42,8 @@ const HEADLINE = ["Simplifying", "your", "medical", "journey"];
 /** The splash's words, for an app that speaks another language. */
 export type SplashWords = {
   headline: string[];
-  /** One label and one caption per stop, in order. */
-  stops: { label: string; caption: string }[];
+  /** One label and one caption per stop, in order; an icon to tell a different story. */
+  stops: { label: string; caption: string; icon?: LucideIcon }[];
   skip: string;
   loading: string;
 };

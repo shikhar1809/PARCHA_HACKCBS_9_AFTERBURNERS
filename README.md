@@ -84,7 +84,9 @@ one tap for "taken" — and lets the rest of the family see that she did.
 | Dadi's screen | A voice message | Schedule locked | Hello, family |
 | --- | --- | --- | --- |
 | <img src="docs/screenshots/android/dadi-simple-screen.png" width="180"> | <img src="docs/screenshots/android/voice-message.png" width="180"> | <img src="docs/screenshots/android/schedule-locked.png" width="180"> | <img src="docs/screenshots/android/hello-family.png" width="180"> |
-| Speaks the next time on opening (female Hindi voice), with mute. | Up to 30 s, heard back before it is sent. | Locked reminders cannot be edited or deleted; a newer Parcha replaces them. | Whatever is chosen is green, everywhere. |
+| Speaks the next time on opening (female Hindi voice), with mute; Message family and Call stay pinned at the bottom. | Up to 30 s, heard back before it is sent. | Locked reminders cannot be edited or deleted; a newer Parcha replaces them. | Whatever is chosen is green, everywhere. |
+
+<p align="center"><img src="docs/screenshots/android/splash.png" alt="Every dose, understood" width="22%"><br><sub>The opening: Parcha → Check → Strip → Remind → Family.</sub></p>
 
 ## Honest by design
 

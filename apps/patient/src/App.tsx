@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { BellRing, Camera, ListChecks, ScrollText, Users } from "lucide-react";
 import { PendingBar, SessionGuard, useOutboxSync, useReminders, usingEmulators } from "@parcha/client";
 import { usableUsername } from "@parcha/core";
 import { PhoneFrame, Splash, useFontsReady } from "@parcha/ui";
@@ -184,13 +185,15 @@ export function App() {
         ready={doctorScan || !!sharedWith || ready}
         status={status}
         words={{
-          headline: t("Simplifying your medical journey", "इलाज का सफ़र आसान", "Ilaaj ka safar aasaan").split(" "),
+          // The patient app's own story: from the slip in the hand to a family
+          // that can see the dose was taken. The clinic tells the visit's.
+          headline: t("Every dose, understood", "हर खुराक, समझ में", "Har dose, samajh mein").split(" "),
           stops: [
-            { label: t("Register", "पंजीकरण", "Register"), caption: t("Registered at the desk", "काउंटर पर नाम लिखा", "Counter par naam likha") },
-            { label: t("Check-up", "जाँच", "Jaanch"), caption: t("Vitals taken in a minute", "एक मिनट में जाँच", "Ek minute mein jaanch") },
-            { label: t("Doctor", "डॉक्टर", "Doctor"), caption: t("Seen by the doctor", "डॉक्टर ने देखा", "Doctor ne dekha") },
-            { label: t("Prescription", "पर्ची", "Parchi"), caption: t("Prescription signed", "पर्ची पर साइन हुए", "Parchi par sign hue") },
-            { label: t("Medicine", "दवा", "Dawai"), caption: t("Medicine in your hand", "दवा आपके हाथ में", "Dawai aapke haath mein") },
+            { icon: ScrollText, label: t("Parcha", "पर्चा", "Parcha"), caption: t("The doctor's slip, scanned or read", "डॉक्टर का पर्चा, स्कैन या पढ़ा", "Doctor ka parcha, scan ya padha") },
+            { icon: ListChecks, label: t("Check", "जाँच", "Jaanch"), caption: t("Every medicine confirmed by you", "हर दवा आपने पक्की की", "Har dawai aapne pakki ki") },
+            { icon: Camera, label: t("Strip", "पत्ता", "Patta"), caption: t("Each strip photographed", "हर पत्ते की फ़ोटो", "Har patte ki photo") },
+            { icon: BellRing, label: t("Remind", "याद", "Yaad"), caption: t("On time, in your language", "समय पर, आपकी भाषा में", "Time par, aapki bhasha mein") },
+            { icon: Users, label: t("Family", "परिवार", "Parivaar"), caption: t("The family sees it was taken", "परिवार देखता है कि दवा ली", "Parivaar dekhta hai ki dawai li") },
           ],
           skip: t("Tap to skip", "छोड़ने के लिए छुएँ", "Skip karne ke liye chhuein"),
           loading: t("Parcha is loading", "Parcha खुल रहा है", "Parcha khul raha hai"),

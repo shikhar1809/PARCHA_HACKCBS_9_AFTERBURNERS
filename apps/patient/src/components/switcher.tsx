@@ -44,7 +44,8 @@ export function WhoIsUsingScreen() {
         <div className="mx-auto mb-5 max-w-md">
           <LangChoice value={lang} onChange={(l) => setLang(l)} size="sm" />
         </div>
-        <p className="text-2xl leading-tight font-bold">
+        {/* White with a black outline: it reads on the orange from across a room. */}
+        <p className="text-[2.1rem] leading-tight font-bold text-white" style={{ WebkitTextStroke: "2px #232326", paintOrder: "stroke fill", textShadow: "0 3px 0 #232326" }}>
           {family ? t(`Hello, ${family} family`, `नमस्ते, ${family} परिवार`, `Namaste, ${family} parivaar`) : t("Hello", "नमस्ते", "Namaste")}
         </p>
         <h1 className="text-[2rem] leading-tight font-bold">{t("Who is using Parcha?", "पर्चा कौन इस्तेमाल कर रहा है?", "Parcha kaun use kar raha hai?")}</h1>

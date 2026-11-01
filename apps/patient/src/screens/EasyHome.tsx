@@ -3,7 +3,7 @@ import { isMuted, ListenButton, setMuted, speak } from "../components/speak";
 import { buzz } from "../components/alerts";
 import { errorMessage, markDose, useDoseLog, useReminders } from "@parcha/client";
 import { dosesOn, minutesSince, spokenTimeHindi, toDateString, type Dose } from "@parcha/core";
-import { Check, HeartHandshake, LayoutGrid, Loader2, Phone, PhoneCall, PhoneOff, Pill, Settings2, Undo2, Volume2, VolumeX } from "lucide-react";
+import { Check, HeartHandshake, LayoutGrid, Loader2, Phone, PhoneCall, PhoneOff, Pill, Settings2, Undo2, Volume2, VolumeX, Mic } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useHandset } from "../auth";
@@ -92,6 +92,7 @@ export function EasyHome({ person }: { person: Person }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reminders.loading, nextLine, dueKeys]);
   const [muted, setMutedState] = useState(isMuted());
+  const [recording, setRecording] = useState(false);
 
   async function tookIt(list: Dose[]) {
     setBusy(true);
@@ -271,25 +272,6 @@ export function EasyHome({ person }: { person: Person }) {
           </p>
         ) : null}
 
-        {/* Her voice, for the family: "the white tablets are finished", "call me". */}
-        <RecordMessage from={person.name} />
-
-        {person.helperNumber ? (
-          <a
-            href={`tel:+91${person.helperNumber}`}
-            className="mt-auto flex min-h-16 items-center justify-center gap-3 rounded-3xl border-[3px] border-[#232326] bg-card text-xl font-bold shadow-[0_5px_0_#232326]"
-          >
-            <Phone className="size-7" aria-hidden />
-            {person.helperName
-              ? t(`Call ${person.helperName}`, `${person.helperName} को फ़ोन करें`, `${person.helperName} ko phone karein`)
-              : t("Call my helper", "मददगार को फ़ोन करें", "Helper ko phone karein")}
-          </a>
-        ) : (
-          <p className="mt-auto flex items-center justify-center gap-2 text-center text-base">
-            <HeartHandshake className="size-5" aria-hidden /> {t("Ask your helper if you need anything.", "कुछ चाहिए तो अपने मददगार से कहें।", "Kuch chahiye to apne helper se kahein.")}
-          </p>
-        )}
-
         <button
           type="button"
           onClick={() => ask("full")}
@@ -298,6 +280,38 @@ export function EasyHome({ person }: { person: Person }) {
           <LayoutGrid className="size-5" aria-hidden /> {t("Caretaker view", "देखभाल करने वाले का व्यू", "Caretaker view")}
         </button>
       </main>
+
+      {/* Always in reach, never scrolled away: her voice for the family, and
+          the one person she would phone. */}
+      <nav className="grid shrink-0 grid-cols-2 gap-3 border-t-[3px] border-[#232326] bg-[var(--background)] px-4 pt-3 pb-4" aria-label={t("Reach the family", "परिवार से बात", "Parivaar se baat")}>
+        <button
+          type="button"
+          onClick={() => setRecording(true)}
+          className="flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-3xl border-[3px] border-[#232326] bg-[var(--brand)] text-lg leading-tight font-bold shadow-[0_4px_0_#232326]"
+        >
+          <Mic className="size-8" aria-hidden />
+          {t("Message family", "परिवार को संदेश", "Parivaar ko sandesh")}
+        </button>
+        {person.helperNumber ? (
+          <a
+            href={`tel:+91${person.helperNumber}`}
+            className="flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-3xl border-[3px] border-[#232326] bg-card text-lg leading-tight font-bold shadow-[0_4px_0_#232326]"
+          >
+            <Phone className="size-8" aria-hidden />
+            {person.helperName ? t(`Call ${person.helperName}`, `${person.helperName} को फ़ोन`, `${person.helperName} ko phone`) : t("Call my helper", "मददगार को फ़ोन", "Helper ko phone")}
+          </a>
+        ) : (
+          <p className="flex min-h-20 items-center justify-center gap-2 rounded-3xl border-[3px] border-dashed border-[#232326] px-2 text-center text-base">
+            <HeartHandshake className="size-6 shrink-0" aria-hidden /> {t("Ask your helper if you need anything.", "कुछ चाहिए तो मददगार से कहें।", "Kuch chahiye to helper se kahein.")}
+          </p>
+        )}
+      </nav>
+
+      {recording ? (
+        <Sheet title={t("A message for the family", "परिवार के लिए संदेश", "Parivaar ke liye sandesh")} onClose={() => setRecording(false)}>
+          <RecordMessage from={person.name} />
+        </Sheet>
+      ) : null}
 
       {leaving ? (
         <Sheet title={t("Helper", "मददगार", "Helper")} onClose={() => { setLeaving(false); setPinError(null); }}>
