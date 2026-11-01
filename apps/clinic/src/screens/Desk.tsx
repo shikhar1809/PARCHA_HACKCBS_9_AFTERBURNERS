@@ -13,7 +13,6 @@ import {
   SectionLabel,
 } from "@parcha/ui";
 import { formatDay, formatTime, type Patient, type Visit } from "@parcha/core";
-import { SlaBadge } from "./Sla";
 import { Loader2, Search, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -327,7 +326,6 @@ function RequestTag({ visit }: { visit: Visit }) {
     <div className="mt-0.5 w-28 shrink-0 text-right text-sm leading-tight">
       {clocked ? (
         <p className="mb-1">
-          <SlaBadge visit={visit} />
         </p>
       ) : null}
       <p>{line[0]}</p>
